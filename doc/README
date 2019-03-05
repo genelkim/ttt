@@ -1,0 +1,147 @@
+Quick Summary of TTT features 
+-----------------------------
+o Please contact Adam Purtee (apurtee@cs.rochester.edu) with questions/bugs. 
+
+To use TTT, first load it:
+(load "/p/nl/tools/ttt/src/load")
+
+Then switch to the package:
+(in-package :ttt)
+
+To match a single pattern expression against a single tree expression, do: 
+(match-expr pattern-expression tree-expression)
+
+To apply a rule to a tree-expression until converged, do: 
+(apply-rule rule-expr tree-expr)
+
+To apply a list of rules, do: 
+(apply-rules rule-expr-list  tree-expr)
+
+Both apply-rules and apply-rule have the keyword arguments:
+
+:shallow   - when t, only apply rules to the root of tree-expr (default nil)
+:max-n     - when supplied, limit the rule application to n iterations. 
+             E.g, to apply a rule at most once, do 
+             (apply-rule rule-expr tree-expr :max-n 1)
+             or
+             (apply-rules (list rule-expr) tree-expr :max-n 1)
+
+:trace     - when t, displays debugging info to stdout
+             otherwise, when non-nil write debugging info to a specified file, 
+	     appending to the file if it already exists
+              
+             trace format is a tuple of lines per transduction:
+              <rule expression>
+              <tree before transduction>
+              <tree after transduction>
+              <blank line>
+             
+             apply-rule does not include the rule expression in the trace 
+	     output, since the rule is determined at function call time.
+
+
+apply-rules additionally supports the keyword argument :rule-order, with values
+chosen among:
+
+:slow-forward   - apply each rule until that rule no longer
+                  applies, possibly repeating the entire sequence
+:earliest-first - always apply the first rule in the list that 
+                  is applicable, repeat until no rules are applicable
+                  the rule list may be processed multiple times
+:fast-forward   - apply each rule at most once, in order, repeating
+                  the list until convergence
+
+
+The exported symbols are:
+ match-expr, 
+ apply-rule,
+ apply-rules, and 
+ store-pred. 
+
+You can use these without being in the TTT package in your repl by prefixing the functions with ttt:. 
+For example,  (ttt:match-expr '(a (! pattern tree)) '(a tree)). 
+	   
+To define a predicate which is a named TTT pattern, do: 
+(mk-pred-ttt pred-name patt-expr)
+<See pred-defs.lisp for examples>
+
+To define a predicate name the predicate with ending 
+symbol "?" and define it to accept a single tree 
+expression as input.
+Example: 
+(defun binary? (tree)
+  (if (atom tree)  ;; a leaf is a binary tree
+      t
+      (and (= (length tree) 2) ;; two children
+	   (binary? (nth 0 tree))
+	   (binary? (nth 1 tree)))))
+(match-expr 'binary? '(X Y))
+ => T
+(match-expr 'binary? '(X Y Z))
+ => nil
+(match-expr '(H binary? K) (H (X (Y Z)) K))
+ => T
+
+If you define a predicate outside the TTT package, you must explictly 
+call ttt:store-pred afterward in order for TTT to be aware of it. 
+
+
+
+
+There are two command line level tools: 
+---------------------------------------
+/p/nl/tools/ttt/scripts/apply   "RULE"     treebank-file
+ o applies a single rule to the treebank-file and displays the output on stdout
+
+/p/nl/tools/ttt/scripts/search   "PATTERN"   treebank-file
+ o deeply searches the treebank-file for matches to pattern, printing the results to stdout
+
+In both cases treebank-file should have one tree per line, as in charniak parser output. 
+
+Dan has a script that I use to flatten the .mrg files from the WSJ/Penn:
+~gildea/scripts/oneline_treebank.pl
+
+
+Notes:   
+o scripts/search can be used to search for matches to TTT patterns at the command line
+
+o scripts/apply can be used to apply TTT rules to a treebank at the command line
+  
+o For details on syntax, see file "syntax.txt"
+
+o To checkout the most recent version of the repository:
+svn co svn+ssh://USERNAME@YOURMACHINE/u/apurtee/svn-repos/ttt
+
+
+Ruleset syntax and example (for applying sets of rules):
+(defparameter *rulset-name*
+  (list
+   rule-1
+   rule-2
+   ..
+   rule-n
+   ))
+
+(defparameter *example-ruleset*
+  '(
+    (/ 
+     (_* (NP _+ (PP _+1)) _*1)
+     (_* (NP _+) (PP _+1) _*1))
+    (/ 
+     (_* (PP _+ (PP _+1)) _*1)
+     (_* (PP _+) (PP _+1) _*1))
+    (/ 
+     (_* (VP _+ (PP _+1)) _*1)
+     (_* (VP _+) (PP _+1) _*1))
+    (/ 
+     (_* (ADJP _+ (PP _+1)) _*1)
+     (_* (ADJP _+) (PP _+1) _*1))
+    (/ 
+     (_* (WHNP _+ (PP _+1)) _*1)
+     (_* (WHNP _+) (PP _+1) _*1))
+    (/ 
+     (_* ((! ~ NP PP VP ADJP WHNP) _+ (PP _+1)) _*1)
+     (_* (! _+) (PP _+1) _*1))
+    ))
+	
+  

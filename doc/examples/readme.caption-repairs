@@ -1,0 +1,317 @@
+;; Application of TTT to Image Caption Repair problems posed by Len Schubert via email on Apr 26, 2011.
+
+(load "caption-funcdefs.lisp")
+(defparameter *imcap-repair-rules* nil)
+(defparameter *imcap-trees* nil)
+
+(defparameter *imgcap-repairs* nil)
+
+(defun add-imcap-rule (patt &optional template)
+  (push (cons patt template) *imcap-repair-rules*))
+
+(defun run-imcap-example (&optional disp) 
+  (format t "total rules: ~a" (length *imcap-repair-rules*))
+  (dolist (treei *imcap-trees*)
+    (print 'before)
+    (print treei)
+    (print 'after)
+    (print (apply-rules-to-tree *imcap-repair-rules* treei :disp-rules disp))))
+
+; will the binding of *imcap-repair-rules* be captured when the function is defined or will the current value of the global parameter be used?  (i think the latter...)
+; "Noah Friedland, upper right, with friends and family at his book signing."
+;   Errors:
+;   - PP "at his book signing" incorrectly postmodifies NP "family";
+;     adding a PP to a final conjunct, instead of to a higher-level  
+;     constituent, is a common Charniak parser error.
+;
+;   Desired correction:
+;   - lift PP "in his book signing" out of postmodifying position, and one
+;     level higher, so that it ends up a sibling of PP "with his friends", 
+;     not next to (CC and); a clue is that the conjunction "friends and
+;     family" is balanced (one word each, both "human"), not skewed way
+;     to the right. Subsequent examples show that Charniak is prone
+;     to this "attachment-to-last-conjunct" error, so I may well use rule 
+;
+;     (_+ (NP (NP _+1) (CC and) (NP (NP _+2) (PP _+3))) _*) ==>
+;     (_+ (NP (NP _+1) (CC and) (NP _+2)) (PP _+3) _*)
+;  Later I noted that the rule should be generalized to larger conjunctions, 
+;    and restricted in terms of what prepositions can be lifted (not "of", 
+;   for example) -- say, just locative PPs:
+;     (_+ (NP (+ (<> (NP _+1) (? (, ,)))) (CC and)
+;                (NP (NP _+2) (! (PP locative-p? _+3)))) _*) ==>
+;     (_+ (NP <> (CC and) (NP _+2)) ! _*)
+;
+;  note that this repair does not do exactly as desirebd:  "at his book signing" becomes a sibling of "friends and family" (which might still need an enclosing NP)
+
+(setq tree1
+      '(S1
+       (NP (NP (NNP NOAH FRIEDLAND)) (|,| |,|) (NP (JJ UPPER) (NN RIGHT)) (|,| |,|)
+	   (PP-WITH (IN WITH)
+		    (NP (NP (NNS FRIENDS)) (CC AND)
+			(NP (NP (NN FAMILY))
+			    (PP-AT (IN AT)
+				   (NP (DETP (NP (PRP HE)) (POS |'S|)) (NN BOOK) (NN SIGNING))))))
+	   (|.| |.|))))
+(push tree1 *imcap-trees*)
+;(add-imcap-rule '(_+ (NP (NP _+1) (CC and) (NP (NP _+2) (PP? _+3))) _*)
+;		'(_+ (NP (NP _+1) (CC and) (NP _+2)) (PP? _+3) _*))
+(add-imcap-rule '(_+ (NP (+ (<> (NP _+1) (? (|,| |,|)))) (CC and) (NP (NP _+2) (! (PP? locative-p? _+3)))) _*)
+		'(_+ (NP <> (CC and) (NP _+2)) ! _*))
+
+
+;orule1
+(push '(/ 
+	(_+ (NP (+ (<> (NP _+1) (? (|,| |,|)))) (CC and) (NP (NP _+2) (! (PP? locative-p? _+3)))) _*)
+	(_+ (NP <> (CC and) (NP _+2)) ! _*))
+      *imgcap-repairs*)
+
+
+
+; "A picture of Tanya, in her black dress, with family at her graduation party."
+; Errors:
+;   - The "at her graduation party" has been attached to "family".
+;
+;   Desired correction:
+;   - Lift the final PP to become a sister of the PP in which it is
+;     embedded:
+;     (_+ (PP (IN _!) (NP (NP _+1) (PP _+2))) _*)
+;              ==>  (_+ (PP (IN _!) (NP _+1)) (PP _+2) _*)
+;     
+;     I noted later that this correction should not be made if the
+;     final preposition is "of". So the above rule could be refined
+;     similarly as the rule for caption 1.
+(setq tree2 
+      '(S1
+	(FRAG (NP (NNP TANYA)) (|,| |,|)
+	 (PP-IN (IN IN)
+	  (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ BLACK) (NN DRESS)))
+	 (|,| |,|)
+	 (PP-WITH (IN WITH)
+	  (NP (NP (NN FAMILY))
+	      (PP-AT (IN AT)
+		     (NP (DETP (NP (PRP SHE)) (POS |'S|)) (NN GRADUATION)
+			 (NN PARTY)))))
+	 (\. \.))))
+(push tree2 *imcap-trees*)
+; repair rule  (note that this one can be refined)
+(add-imcap-rule '(_+ ((!1 PP?) (IN _!) (NP (NP _+1) ((!2 PP?) _+2))) _*) 
+		'(_+ (!1  (IN _!) (NP _+1)) (!2 _+2) _*))
+;orule2
+(push '(/ 
+	(_+ ((!1 PP?) (IN _!) (NP (NP _+1) ((!2 PP?) _+2))) _*) 
+	(_+ (!1  (IN _!) (NP _+1)) (!2 _+2) _*))
+      *imgcap-repairs*)
+
+
+
+; "Halle, in her new blue Beatles shirt, and her big sister, Tanya."
+; Errors:
+;   - the PP "in her new blue Beatles shirt" hasn't been attached to "Halle",
+;     and as a result the (CC and) will appear to have a PP rather than NP to
+;     its left;
+;   - false coordination of "her new blue Beatles shirt" and "her big sister,
+;     Tanya"; the comma after "in her new Beatles shirt", and the mismatch
+;     between the putative coordinated heads, "shirt" and "sister", indicate
+;     the likelihood of error.
+;
+;   Desired corrections:
+;   - First, to attach the PP, we might say
+;     (FRAG (NP _+) (? (, ,)) (PP _+1) _*) ==> (FRAG (NP (NP _+) ? (PP _+1)) _*)
+;   - To lift the conjunct, maybe a rather specialized rule,
+;       (_+ (PP (IN _!) (NP (NP _* nn-nonhuman?) (, ,)
+;                           (CC and) (NP (NP _*1 nn-human?) _+1))) _*2) ==>
+;       (_+ (PP (IN _!) (NP _* nn-nonhuman?)) (, ,)
+;                           (CC and) (NP (NP _*1 nn-human?) _+1) _*2)
+;     plus a rule with "nn-human?" and "nn-nonhuman?" interchanged, plus 2 more
+;     that just have a single-level (NP ...) at the end, rather than nested
+;     (NP (NP ...) ...) (which allows for apposition or postmodification).
+(setq tree3 
+      '(S1
+	(FRAG (NP (NNP HALLE)) (|,| |,|)
+	 (PP-IN (IN IN)
+	  (NP
+	   (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ NEW) (JJ BLUE)
+	       (NNP BEATLES) (NN SHIRT))
+	   (|,| |,|) (CC AND)
+	   (NP (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ BIG) (NN SISTER))
+	       (|,| |,|) (NP (NNP TANYA)))))
+	 (\. \.))))
+(push tree3 *imcap-trees*)
+(add-imcap-rule '(FRAG (NP _+) (? (|,| |,|)) (PP? _+1) _*)
+		'(FRAG (NP (NP _+) ? (PP? _+1)) _*))
+(push '(/ (FRAG (NP _+) (? (|,| |,|)) (PP? _+1) _*)
+	  (FRAG (NP (NP _+) ? (PP? _+1)) _*)) 
+      *imgcap-repairs*)
+
+(add-imcap-rule '(_+ (PP? (IN _!) (NP (NP _* nn-nonhuman?) (|,| |,|) (CC and) (NP (NP _*1 nn-human?) _+1))) _*2)
+		'(_+ (PP? (IN _!) (NP _* nn-nonhuman?)) (|,| |,|) (CC and) (NP (NP _*1 nn-human?) _+1) _*2))
+(push '(/ (_+ (PP? (IN _!) (NP (NP _* nn-nonhuman?) (|,| |,|) (CC and) (NP (NP _*1 nn-human?) _+1))) _*2)
+	  (_+ (PP? (IN _!) (NP _* nn-nonhuman?)) (|,| |,|) (CC and) (NP (NP _*1 nn-human?) _+1) _*2))
+      *imgcap-repairs*)
+(add-imcap-rule '(_+ (PP? (IN _!) (NP (NP _* nn-human?) (|,| |,|) (CC and) (NP (NP _*1 nn-nonhuman?) _+1))) _*2)
+		'(_+ (PP? (IN _!) (NP _* nn-human?)) (|,| |,|) (CC and) (NP (NP _*1 nn-nonhuman?) _+1) _*2))
+(push '(/ (_+ (PP? (IN _!) (NP (NP _* nn-human?) (|,| |,|) (CC and) (NP (NP _*1 nn-nonhuman?) _+1))) _*2)
+	  (_+ (PP? (IN _!) (NP _* nn-human?)) (|,| |,|) (CC and) (NP (NP _*1 nn-nonhuman?) _+1) _*2))
+      *imgcap-repairs*)
+(add-imcap-rule '(_+ (PP? (IN _!) (NP (NP _* nn-nonhuman?) (|,| |,|) (CC and) (NP _*1 nn-human?) _+1)) _*2)
+		'(_+ (PP? (IN _!) (NP _* nn-nonhuman?)) (|,| |,|) (CC and) (NP _*1 nn-human?) _+1 _*2))
+(push '(/ (_+ (PP? (IN _!) (NP (NP _* nn-nonhuman?) (|,| |,|) (CC and) (NP _*1 nn-human?) _+1)) _*2)
+	  (_+ (PP? (IN _!) (NP _* nn-nonhuman?)) (|,| |,|) (CC and) (NP _*1 nn-human?) _+1 _*2))
+      *imgcap-repairs*)
+(add-imcap-rule '(_+ (PP? (IN _!) (NP (NP _* nn-human?) (|,| |,|) (CC and) (NP _*1 nn-nonhuman?) _+1)) _*2)
+		'(_+ (PP? (IN _!) (NP _* nn-human?)) (|,| |,|) (CC and) (NP _*1 nn-nonhuman?) _+1 _*2))
+(push '(/ (_+ (PP? (IN _!) (NP (NP _* nn-human?) (|,| |,|) (CC and) (NP _*1 nn-nonhuman?) _+1)) _*2)
+	  (_+ (PP? (IN _!) (NP _* nn-human?)) (|,| |,|) (CC and) (NP _*1 nn-nonhuman?) _+1 _*2))
+      *imgcap-repairs*)
+
+
+; return to example 4
+; "Tanya, Josh, Halle and little Ben on the first day of school, 2009."
+; (S1
+;    (NP (NP (NNP TANYA)) (|,| |,|)
+;     (NP
+;      (NP (NP (NNP JOSH)) (|,| |,|) (NP (NNP HALLE)) (CC AND)
+;       (NP (NP (JJ LITTLE) (NNP BEN))
+;        (PP-ON (IN ON)
+;         (NP (NP (DT THE) (JJ FIRST) (NN DAY))
+;          (PP-OF (IN OF) (NP (NN SCHOOL)))))))
+;      (|,| |,|) (NP (CD 2009)))
+;     (\. \.)))
+;
+;   Errors:
+;   - The NP "Josh, Halle and little Ben" was attached as if appositively to NP "Tanya";
+;   - The PP "on the first day of school" was attached to the NP "little Ben";
+;   - The NP "2009" was attached as if appositively to "Josh, Halle and little Ben"
+; 
+; 
+;   Desired corrections:
+;   - flatten NP[proper] + conjunction starting & ending with NP[proper] into a single
+;     conjunction; try this:
+;     (_+ (NP _* (NNP _+1)) (? (, ,)) (^@ (* (NP @)) (NP (NP _*1 (NNP _+3)) (*1 ({} (NP _+4) (?1 (, ,)))) (CC (! and or)) (NP _*2 (NNP _+5)))))
+;     ==>   (_+ ((NP _* (NNP _+1)) ? (NP _*1 (NNP _+3)) *1 (CC (! and or)) (NP _*2 (NNP_+5))))
+;(add-imcap-rule '(_+ (NP _* (NNP _+1)) (? (|,| |,|)) (^@ (* (NP @)) (NP (NP _*1 (NNP _+3)) (*1 ({} (NP _+4) (?1 (|,| |,|)))) (CC (! and or)) (NP _*2 (NNP _+5)))))
+;		'(_+ ((NP _* (NNP _+1)) ? (NP _*1 (NNP _+3)) *1 (CC (! and or)) (NP _*2 (NNP_+5)))))
+; minimalistic rule
+;(add-imcap-rule '(_+ (NP (<> (NP (NNP _!)) (|,| |,|))
+;		      (NP (NP (NP (NNP _!)) (|,| |,|) (NP (NNP _!)) (CC AND) (NP (NP _* (NNP _!)) PP?)) _+) _+))
+;		'(_+ (NP (NP <>) PP?) _+ _+))
+; expanded rule
+(add-imcap-rule '(_+ (NP (<> (NP _* (NNP _!)) (? (|,| |,|))) (NP (NP (<>1 (NP _* (NNP _!)) (|,| |,|) (NP _* (NNP _!)) (CC AND)) (NP (! (NP _* (NNP _!))) PPT?)) _+1) _+2))
+
+		'(_+ (NP (NP <> <>1 !) PPT? _+1 _+2)))
+(push '(/ (_+ (NP (<> (NP _* (NNP _!)) (? (|,| |,|))) (NP (NP (<>1 (NP _* (NNP _!)) (|,| |,|) (NP _* (NNP _!)) (CC AND)) (NP (! (NP _* (NNP _!))) PPT?)) _+1) _+2))
+	  (_+ (NP (NP <> <>1 !) PPT? _+1 _+2)))
+      *imgcap-repairs*)
+			  
+
+;     Alas, this will lose the NP "2009" (& more generally, whatever is post-attached
+;     to the NPs in the "vertical" sequence embedding the conjunction). I think instead
+;     of using arbitrary levels of NP-embedding, I should first be re-attaching "2009",
+;     which will get rid of one NP-level. But that's tricky, because the phrase to the
+;     left of "2009" that it should be attached to may be deeply (whether correctly or
+;     not) embedded.
+;   
+;     Can I write a rule that looks for a rightmost temporal phrase arbitrarily
+;     embedded in a larger phrase, where there is another temporal NP right-adjacent
+;     to the larger phrase, and join up the two temporal phrases? Two cases:
+;   
+;     (XP <stuff> (<big, deep phrase> <embedded-rightmost-NP[time]>) <another NP[time]>), and (XP (<big, deep phrase> <embedded-rightmost-NP[time]>) <other NP[time]>).
+;   
+;     In the first case, we keep the XP (because of <stuff>), in the second we don't --
+;     the XP was just serving to misattach the <other NP[time]>.
+;   
+;     (_! _+ (^@ (* (_+1 @)) (! np-time?)) (!1 np-time?)) ==>
+;     ! := (attach-np-time! ! !1); this does *not* leave a copy of !1 on the outside!
+;   
+;     I guess in the second case, to actually get rid of a pair of brackets, I could do
+;   
+;     (!2 (!3 (^@ (* (_+1 @)) (! np-time?))) (!1 np-time?)) ==>
+;     ! := (attach-np-time! ! !1) and-then !2 := !3
+;   
+;     (Note the need for multiple steps.)
+;     However, maybe we only want to do the bracket flattening if the first
+;     elements at each level are the same, e.g., (NP (NP ...)). Then we should
+;     reformulate the first rule above so that "<stuff>" may or may not be
+;     empty, and then *separately* apply a flattening rule:
+;   
+;     (_! _* (^@ (* (_+1 @)) (! np-time?)) (!1 np-time?)) ==>
+;     ! := (attach-np-time! ! !1)
+;   
+;     (! (_!. (!1 (_!. _+)))) ==> ! := !1
+   
+;   - Assuming that the above re-attachment has been done, the rule already
+;     posited for detaching a PP attached to the final conjunct of a conjunction
+;     should detach "on the first day of school, 2009" from "little Ben".
+(setq tree4 
+      '(S1
+	(NP (NP (NNP TANYA)) (|,| |,|)
+	 (NP
+	  (NP (NP (NNP JOSH)) (|,| |,|) (NP (NNP HALLE)) (CC AND)
+	      (NP (NP (JJ LITTLE) (NNP BEN))
+		  (PP-ON (IN ON)
+			 (NP (NP (DT THE) (JJ FIRST) (NN DAY))
+			     (PP-OF (IN OF) (NP (NN SCHOOL)))))))
+	  (|,| |,|) (NP (CD 2009)))
+	 (\. \.))))
+(push tree4 *imcap-trees*)
+;; STILL NEED TO WRITE REPAIR RULES
+
+
+
+; "Ben, looking dapper in his green shirt, with Granmda Lillian at The Summit."
+; Errors:
+;   - "dapper" is misanalyzed as a noun
+;   - "in his green shirt" is attached to the putative noun, "dapper"
+;   - "at The Summit" is attached to "Grandma Lillian"
+;
+;   Desired corrections:
+;   - I found that replacing "dapper" by "very dapper" actually made matters
+;     worse, even though "dapper" is then recognized as an adjective:
+;     "in his green shirt" and "with Grandma Lillian" are both made into
+;     constituents of the ADJP that starts with "very dapper ..."!
+;     So regardless of the actual error here, I think we need a rule like
+;   
+;       (_+ (ADJP _+1 (<> (PP _+2) (? (, ,)))) _*) ==> (_+ (ADJP _+1) <> _*)
+;   
+;     This is likely to need refinement, to prevent breaking up such
+;     phrases "next to her" or "proud of his award".
+;   
+;   - The detachment of "in his green shirt" from the putative noun, "dapper"
+;     is already handled by a rule I've mentioned.o
+;   
+;   - Likewise for detachment of "at The Summit" from "Grandma Lillian"
+(setq tree5
+      '(S1
+	(NP (NP (NNP BEN)) (|,| |,|)
+	 (VP (VBG LOOKING)
+	  (NP (NP (NN DAPPER))
+	      (PP-IN (IN IN)
+		     (NP (DETP (NP (PRP HE)) (POS |'S|)) (JJ GREEN) (NN SHIRT)))))
+	 (|,| |,|)
+	 (PP-WITH (IN WITH)
+	  (NP (NP (NNP GRANDMA LILLIAN))
+	      (PP-AT (IN AT) (NP (DT THE) (NN SUMMIT)))))
+	 (\. \.))))
+(push tree5 *imcap-trees*)
+
+(add-imcap-rule '(_+ (ADJP _+1 (<> (PP? _+2) (? (|,| |,|)))) _*)
+		'(_+ (ADJP _+1) <> _*))
+(push '(/ (_+ (ADJP _+1 (<> (PP? _+2) (? (|,| |,|)))) _*)
+	  (_+ (ADJP _+1) <> _*))
+      *imgcap-repairs*)
+(setq tree5a
+      '(S1
+	(S (NP (NNP BEN)) (|,| |,|)
+	 (VP (VBG LOOKING)
+	  (ADJP (RB VERY) (JJ DAPPER)
+		(PP
+		 (PP-IN (IN IN)
+			(NP (DETP (NP (PRP HE)) (POS |'S|)) (JJ GREEN) (NN SHIRT)))
+		 (|,| |,|) (PP-WITH (IN WITH) (NP (NNP GRANDMA LILLIAN)))))
+	  (PP-AT (IN AT) (NP (DT THE) (NN SUMMIT))))
+	 (\. \.))))
+(push tree5a *imcap-trees*)
+
+(setf *imcap-trees* (nreverse *imcap-trees*))
+
+

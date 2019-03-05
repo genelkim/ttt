@@ -1,0 +1,5 @@
+#!/bin/bash
+latex presentation.tex
+dvipdf presentation.dvi
+cp presentation.pdf /u/www/u/apurtee/
+ls -lt -I"*~" -I"\#*\#"

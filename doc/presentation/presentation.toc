@@ -1,0 +1,16 @@
+\beamer@endinputifotherversion {3.06pt}
+\beamer@sectionintoc {1}{Introduction}{2}{0}{1}
+\beamer@subsectionintoc {1}{1}{Motivation}{2}{0}{1}
+\beamer@subsectionintoc {1}{2}{Overview}{3}{0}{1}
+\beamer@sectionintoc {2}{Pattern Matching}{4}{0}{2}
+\beamer@subsectionintoc {2}{1}{Features}{4}{0}{2}
+\beamer@subsectionintoc {2}{2}{Operators}{5}{0}{2}
+\beamer@subsectionintoc {2}{3}{Examples}{6}{0}{2}
+\beamer@sectionintoc {3}{Transductions}{8}{0}{3}
+\beamer@subsectionintoc {3}{1}{Features and Operator}{8}{0}{3}
+\beamer@subsectionintoc {3}{2}{Examples}{9}{0}{3}
+\beamer@subsectionintoc {3}{3}{Theoretical Properties}{12}{0}{3}
+\beamer@sectionintoc {4}{Selected Applications}{15}{0}{4}
+\beamer@subsectionintoc {4}{1}{Parse Tree Refinement}{15}{0}{4}
+\beamer@subsectionintoc {4}{2}{Working with Logical Forms}{16}{0}{4}
+\beamer@subsectionintoc {4}{3}{Outtro}{20}{0}{4}

@@ -1,0 +1,336 @@
+%%   Increase detail on pattern operators and example patterns.
+%%   Add examples from Jonathan. 
+%%   Add image caption repair example -- Tanya and Grandma Lillian...isn't parsed incorrectly!
+%%   Clean up Skolemization example.
+%%   Clean up formatting.
+%%   Add citations and clean up bibtex.  -- could I use more on the tree transducers?
+
+
+% Contact: fabrice.lefevre@univ-avignon.fr , ad465@eng.cam.ac.uk
+%% Based on the style files for ACL2008 by Joakim Nivre and Noah Smith
+%% and that of ACL2010 by Jing-Shin Chang and Philipp Koehn
+
+\documentclass[11pt]{article}
+\usepackage{eacl2012}
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{url}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\setlength\titlebox{6.5cm}    % Expanding the titlebox
+
+\usepackage{graphicx}
+\usepackage{pst-node,pst-tree}
+\usepackage{pst-qtree}
+
+\psset{levelsep=2.5em,treesep=0pt,treefit=tight}
+
+\title{TTT: A tree transduction language for syntactic and semantic processing}
+
+\date{}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+In this paper we present the tree to tree transduction language: TTT.  The language is defined and several examples are given.  We then show applications to parse tree refinement, parse correction, predicate disambiguation, and refinement and verbalization of logical forms. 
+
+
+\end{abstract}
+
+\section{Introduction}
+Pattern matching and pattern driven transformations are fundamental tools to AI.  Many symbol manipulation tasks including inference, dialogue, and translation, can be couched in the framework of pattern directed computation.
+
+
+The TTT system is directly applicable to the diverse language processing tasks of parse tree refinement, parse tree correction, predicate disambiguation, logical form refinement, and verbalization of logical forms into English. 
+
+
+
+Parse tree refinement (for our purposes) has encompassed such tasks as distinguishing passive participles from past participles, temporal nominals from non-temporal ones, assimilation of verb particles into single constituents, deleting empty constituents, and particularizing prepositions.   Using the tag VBEN to denote past participles, when a verb is preceded by has, one may wish to perform the general transformation of  \texttt{(VB ... (VBZ has) ... (VBN ...))}  into \texttt{(VB ... (VBZ has) ... (VBEN ...))}.
+
+
+We have successfully used the new tree transduction system sketched below to repair malformed parses of image captions which were derived from the Charniak-Johnson parser \cite{charniak-johnson-2005}.
+
+We have been able to repair systematic PP misattachments, at least in the limited domain of image captions.   A common error is attachment of a PP to the last conjunct of a conjunction, where instead the entire conjunction should be modified by the PP.  For example, a statistical parse of the sentence `` Tanya and Grandma Lillian at her highschool graduation party'' brackets as ``Tanya and (Grandma Lillian (at her highschool graduation party.))''.  We want to lift the PP so that ``at her highschool graduation party'' modifies ``Tanya and Grandma Lillian''.
+
+Another systematic error is faulty classification of relative pronouns/determiners as wh-question pronouns/determiners (e.g., ``the hotel *where* they met'' vs. ``He remembers *where* they met'' -- an important distinction in compositional semantics). 
+% how to repair this with a TTT rule? 
+
+We have been also able to perform Skolemization, conjunct separation, simple inference, and logical form verbalization with TTT and suspect its utility to logic tasks will increase as development continues.
+
+A beta version of our system will be made available; however the URL is not included in this paper for anonymity. 
+
+
+\section{Related Work}
+There are several pattern matching facilities available; however, we found the ones investigated to be inadequate for our purposes.  Instead of going through the hassle of writing one-off pattern matching and transduction programs for various linguistic tasks (typically operations on parse trees and logical forms), we have implemented the general tree transduction language TTT. 
+
+The three related tools Tgrep, Tregex, and Tsurgeon provide powerful tree matching and restructuring capabilities \cite{Levy06}. Tgrep and Tregex however provide no transduction mechanism, and Tsurgeon's modifications are limited to local transformations on trees.  The syntax for all of these tools, while effective, does not clearly represent the structure of the desired trees. It more closely represents the traversals one would make during the matching process than the fixed tree.
+
+Peter Norvig's pattern matching language from Paradigms of AI Programming provides a nice pattern matching facility within the Lisp environment, but the patterns are restricted to lists of symbols.  TTT supports both matching and transformation of sequences of arbitrarily deep trees. \cite{paip}
+
+Mathematica has very sophisticated pattern matching, including matching of sequences and trees.  It also includes a sophisticated expression rewriting system, which is capable of rewriting sequences of expressions.  It includes functions to apply patterns at arbitrary levels of trees, apply the patterns until convergence or some threshold count, as well as returning all possible ways of applying a set of rules to an expression.  \cite{Mathematicareference}
+
+Snobol, originally developed in the 1960's, is a language focused on string patterns and string transformations.  It has a notably different flavor to the other transformation systems. Its concepts of cursor and needle support pattern based transformations which rely on the current position in a string at pattern matching time, as well as the strings which preceding patterns matched up to the current point.  Snobol also supports named and thereby recursive patterns.  While it includes recognition of balanced parenthesis, the expected data type for Snobol is the string -- leaving it a less than direct tool for intricate manipulation of trees.  An Python extension SnoPy adds Snobol's pattern matching capabilities to Python.  \cite{SnoPy,Greenbook}
+
+Haskell also includes a pattern matching system, but it is weaker than the other systems mentioned.  The patterns are restricted to function arguments, and are not nearly as expressive as Mathematica's for trees nor Peter Norvig's system or Snobol for strings. \cite{Haskellorg}
+
+
+\section{TTT}
+\subsection*{Pattern Matching}:
+Patterns in TTT are hierarchically composed of sub-patterns.  Literal elements (such as atomic symbols or tree fragments) are patterns which match only themselves.  More complicated patterns are constructed through the use of pattern operators.   Most pattern operators require arguments, but some may appear free-standing.  Each pattern operator has a unique method of directing a match according to its supplied arguments.  The pattern syntax has been chosen to directly reflect the structure of the trees to be matched. Transductions are specified by a special pattern operator and will be described in the next section.
+
+The ten basic pattern operators are:
+\begin {itemize}
+\item  \texttt{!}   - match exactly one sub-pattern argument
+\item  \texttt{+}   - match a sequence of one or more arguments
+\item  \texttt{?}   - match the empty sequence or one argument
+\item  \texttt{*}   - match the empty sequence or one or more arguments
+\item  \texttt{\{\}}  - match any permutation of the arguments
+\item  \texttt{$<>$}  - match the freestanding sequence of the arguments
+\item  \texttt{\^}    - match a tree which has a child matching one of the arguments   
+\item  \texttt{\^*}    - match a tree which has a descendant matching one of the arguments \item  \texttt{\^{}@}   - match a vertical path 
+\item  \texttt{/}   - transduction operator (explained later)
+\end {itemize}
+
+{\bf Negation}: 
+The operators \texttt{!}, \texttt{+}, \texttt{?}, \texttt{*}, and \texttt{\^} support negated patterns.  Matching a negated pattern causes the overall match to fail.
+
+{\bf Iteration}:
+The operators \texttt{!}, \texttt{+}, \texttt{?}, \texttt{*}, and \texttt{\^} also support iterative constraints.   This enables one to write patterns which match exactly $n$, at least $n$, at most $n$, or from $n$ to $m$ times, where $n$ and $m$ are integers.   Eg. \texttt{(![3] A)} would match the sequence \texttt{A A A}.
+
+{\bf Unconstrained Patterns}:
+The first four pattern operators may also be invoked without arguments, as: \texttt{\_!}, \texttt{\_+}, \texttt{\_?}, \texttt{\_*}.  These match any single tree, any non-empty sequence of trees, the empty sequence or a sequence of one tree, and any (empty or non-empty) sequence of trees.   
+
+{\bf Vertical Paths}:
+The vertical path operator  \texttt{(\^{}@ X1 X2 ... Xm)}  matches a tree which has root matching \texttt{X1}, a child matching \texttt{X2}, which in turn has a child that matches \texttt{X3}, and so on. 
+
+Any of the arguments to a pattern operator may be composed of arbitrary sub-patterns.   
+
+{\bf Bindings}:
+Operators may be bound, in that the tree sequence which was matched by an operator is retained in a variable.   The variable names may be specified by appending additional information to the operator names (i.e.  \texttt{\_!1}, \texttt{\_!a}, \texttt{\_!2a}, ...).    
+
+{\bf Sticky Variables}:
+Variables may be specified as sticky or non-sticky, where sticky variables which appear more than once in a pattern are constrained to match structurally identical tree sequences to the first occurrence of the variable at each location.
+
+
+{\bf Pattern Details and Examples}
+
+  General examples:\\
+  \begin{itemize}
+  \item (! (+ A) (+ B)) \\-   matches a non-empty sequence of As or a non-empty sequence of B's, \\but not a sequence containing both
+  \item (* ($<>$ A A))  -   matches a sequence of an even number of A's
+  \item (B (* ($<>$ B B)))  -  matches a sequence of an odd number of B's
+  \item ((\{\} A B C))  \\-   matches (A B C) (A C B) (B A C) (B C A) (C A B) and (C B A) and nothing else
+  \item (($<>$ A B C))   -  matches (A B C) and nothing else
+  \item (\^{}* X)  -   matches any tree with descendant X
+  \item (\^{}@ (+  (@ \_*)) X)  -  matches a tree with leftmost leaf ``X''
+  \end{itemize}
+
+  Particular Examples of Matching:
+  \begin{tabular} {l c r}
+    Pattern  & Tree &   Bindings\\
+    \_!   & (A B C) & (\_! (A B C)\\
+    (A \_! C)     &        (A B C)   &              (\_! B)\\
+    (\_* F)       &        (A B (C D E) F)   &      (\_*  A B (C D E))\\
+    (A B \_? F)   &        (A B (C D E) F)   &      (\_? (C D E))\\
+    (A B \_? (C D E) F)  & (A B (C D E) F)   &      (\_? )\\
+    (\^{}@ \_! (C \_*) E)   & (A B (C D E) F)   &   (\^{}@ (A B (C D E) F))  (\_* D E)\\
+    (A B ($<>$ (C D E)) F)  & (A B (C D E) F)   &   ($<>$ (C D E))\\
+    (A B ($<>$ C D E) F)    & (A B (C D E) F)  &   fail\\
+  \end{tabular}
+
+
+
+\subsection*{Transductions}
+Transductions are specified with the transduction operator, \texttt{/}, which takes two arguments.  The left argument may be any tree pattern and the right argument may be constructed of literals, variables from the lhs pattern, and function calls.  A transduction is applied by first testing the lhs pattern against a tree.  When a match occurs, the resulting bindings and second transduction argument are used to create a new tree, which then replaces the tree which matched.  The transductions may be applied to the roots of trees, subtrees, at most once, or until convergence.  When applying transductions to arbitrary subtrees, they are searched top-down, left to right. Here are a few examples of simple template to template transductions:
+\begin {itemize}
+\item  \texttt{(/ X Y)}   - replaces the symbol \texttt{X} with the symbol \texttt{Y}
+\item  \texttt{(/ (! X Y Z) (A))}  - replaces any X, Y, or Z with A
+\item  \texttt{(/ (! X ) (! !))}  - duplicates an X
+\item  \texttt{(/ (X \_* Y) (X Y))}  - remove all subtrees between X and Y
+\item  \texttt{(/ (\_! \_* \_!1) (\_!1 \_* \_!))}  - swaps the subtrees on the boundaries
+\end {itemize}
+
+The transduction operator may also appear nested within other (non-iterated) patterns. For example,  the transduction\\ ``\texttt{(\^{}@ (* ((! S SBAR) \_+)) (/ (WH \_!) (REL-WH (WH \_!))))}'' applied to the tree \texttt{(SBAR (S (S (WH X) B) A))} yields the new tree \texttt{(SBAR (S (S (REL-WH (WH X)) B) A))}.  Additional examples appear later (especially in the parse tree refinement section).
+
+Although these examples are simplistic, the existing system handles more complicated transductions involving several operators spanning multiple levels of a tree.  TTT also supports functions, with bound variables as arguments, in the rhs templates, such as \texttt{join-with-dash!}, which concatenates all the bindings with a dash:   e.g. the transduction \\ ``\texttt{(/ (PP (IN \_!)) ((join-with-dash! PP \_!) (IN \_!)))}'' applied to the subtree \texttt{(PP (IN FROM))} yields \texttt{(PP-FROM (IN FROM))} and applied to the subtree \texttt{(PP (IN TO))} yields \texttt{(PP-TO (IN TO))}.    One can imagine additional functions, such as \texttt{reverse!}, \texttt{l-shift!}, \texttt{r-shift!}, or any other function of a list of nodes which is useful to the application at hand. 
+
+
+\subsection*{Advantages of TTT  over existing formal models}
+Formal tree transducer models (such as synchronous tree substitution grammars and multi bottom-up tree transducers  \cite{Shieber-stag,Maletti-stsg}) constrain their rules to be linear and non-deleting, which is important for efficient rule learning and transduction execution.  The language TTT does not have any such restrictions.  While this flexibility does increase worst-case computational complexity of some operations, TTT is intended to be a full programming language, enabling the user to direct powerful and dramatic transformations on trees.
+
+TTT supports (computable) predicates in patterns, as well as constraints on the allowable resulting bindings.
+
+TTT is easily extended:  the implementation is very modular, so that definition of new pattern operators and predicates is straightforward. 
+
+TTT syntax is clear and the language is more expressive than existing systems.
+A good overview of the dimensions of variability among formal tree transducers is given in Capturing practical natural language transformations, Keven Knight.
+
+
+
+
+\subsection*{Turing Completeness: An informal argument}
+A Turing Machine has a movable head, a finite instruction set (which may be move the head left or write, read a symbol, change state, or write a symbol), 
+and a double ended infinite tape, a finite state set. 
+Q - finite state set 
+F subset Q - accepting states 
+q\_0 - start state
+Sigma - finite alphabet
+delta: QXSigma -> QXSigmaX{L,R}
+Each element of the finite state sets and alphabet can easily be represented by symbols in Lisp. 
+The tape can be represented as a sequence of height 1 trees.  The state and head position can be encoded into the symbol sequence by wrapping the symbol under the head in a list, with the first element being the state. 
+
+Let the current state be q, the symbol under the head s, the symbol to output r, the next state p, and L or R the head direction.
+The transition table can be encoded into TTT rules as follows: 
+
+(q,s,r,p,L) becomes \texttt{(/ (\_* \_!l (q s) \_!r \_*r) (\_* (p \_!l) r \_!r \_*r))}
+(q,s,r,p,R) becomes \texttt{(/ (\_* \_!1 (q s) \_!r \_*r) (\_* \_!l r (p \_!r) \_*r))}
+
+The stipulation that no moves originate from the halting state, and that only one state exists in the sequence at a time, forces TTT to halt when appropriate.
+
+How about the start state? - annotate the first element of the input sequence via the rule \texttt{((/ \_? (start \_?)) \_*)}.
+
+
+
+
+{\bf Nondeterminism and noncommutativity}:
+  Nondeterminism arises in two ways:
+  \begin{itemize}
+  \item rule selection - transductions are not commutative
+  \item bindings  - a template may match a tree in multiple ways  [Ex: (\_* \_*1) =$>$ (\_*) ] or in multiple places [Ex: \_! matches every node of any tree, including the root.]
+  \end{itemize}
+  Therefore some trees may have many reduced forms, and even more ``reachable'' forms. 
+  
+  One can imagine a few ways to tackle this: 
+  \begin{itemize}
+  \item Exhaustive exploration - Given a tree and a set of transductions, attempt to compute all reduced forms.   [note: it is possible for this to be an infinite set.]
+  \item Probabilistic search - easy to assign weights to transductions, not as obvious how to assign weights to bindings, or transduction/location pairs. 
+  \item What we actually do - Given a tree and a list of transductions, for each transduction (in order), apply the transduction in top-down fashion in each feasible location (matching lhs), always using the first binding which results from a ``left most'' search.
+  \end{itemize}
+  The first method has the unfortunate effect of transducing one tree into many (bad for parse repair, probably bad for other applications as well).
+  The latter method is particularly reasonable when your set of transductions is not prone to interaction or multiple overlapping bindings.
+
+
+
+\section{Some illustrative examples}
+%Refer to the working LF disambiguation/refinement/sharpening/English verbalization application 
+%being successfully employed by Jonathan (there's a just-submitted paper by Jonathan and me, 
+%``Reasoning with Text-Derived Commonsense Knowledge''). 
+
+\subsection*{Parse Tree Refinement}
+annotate past participles
+
+\texttt{(/ (VB \_* (VBZ HAS) \_*1 (VBN \_!) \_*2) (VB \_* (VBZ HAS) \_*1 (VBEN \_!) \_*2))}
+
+\texttt{(VB \_* (VBZ HAS) \_* ((/ VBN VBEN) \_!) \_*)}
+
+delete empty constituents
+
+\texttt{(/ (\_* () \_*1) (\_* \_*1))}
+
+distinguish temporal and non-temporal nominals
+
+\texttt{(/ (NP \_* nn-temporal?) (NP-TIME \_* nn-temporal?))}
+
+\texttt{((/ NP NP-TIME) \_* nn-temporal?)}
+
+assimilate verb particles
+\texttt{(/ (VP (VB \_!1) ({} (PRT (RP \_!2)) (NP \_*1))) (VP (VB \_!1 \_!2)  (NP \_*1)))}
+
+
+
+particularize prepositions
+; - particularize PPs to show the preposition involved, e.g., PP-OF, PP-TO,
+;   etc., and further particularize to PP-AT-TIME, PP-IN-TIME for evident
+;   temporal PPs (as judged from the NP); also change (PP (TO TO) ...) to 
+;   (PP-TO (IN TO) ...) (since the WSJ annotations don't distinguish 
+;   preposition TO and verb TO!); 
+\texttt{(/ (PP (IN IN) \_*) (PP-IN (IN IN) \_*))}
+\texttt{(/ (PP (IN OF) \_*) (PP-OF (IN OF) \_*))}
+\texttt{(/ (PP (IN BY) \_*) (PP-BY (IN BY) \_*))}
+\texttt{(/ (PP (IN FROM) \_*) (PP-FROM (IN FROM) \_*))}
+equivalently
+\texttt{(/ (PP (IN \_!) \_*1) '((join-with-dash! PP \_!) (IN \_!) \_*1))}
+
+
+ - parse tree correction
+   e.g., correcting certain systematic PP misattachments, at least
+         for certain applications (ours was caption processing);
+         e.g., misattachment of certain types of PPs to the last
+         conjunct of a conjunction, where instead the entire conjunction
+         should be modified by the PP adjunct; (give specific example
+         desired kind of transduction)
+        `` Tanya and Grandma Lillian at her highschool graduation party''
+
+
+
+\subsection*{Skolemization}
+\begin{verbatim}
+(defparameter *subst-new-int* 0)
+(defun next-int () (incf *subst-new-next*))
+(defun subst-new! (sym expr)			      
+  (let ((newsym (intern (concatenate 'string (symbol-name sym) 
+				     "." (write-to-string (next-int))))))
+    (apply-rule `(/ ,sym ,newsym) expr)))
+(setq *skole-rule* '(/ (EXISTS _! _!1 _!2)  (subst-new! _! (_!1 and.cc _!2))))
+(setq *drop-decl-speech-act*  '(/ (EXISTS _! _!1 ((SPEAKER _* (THAT _!2)) _*)) _!2))
+
+'(EXISTS E0 (E0 AT-ABOUT NOW0)
+  (THE.DET Y ((Y DAD.N) AND.CC (NATHANIEL.NAME HAVE.V Y))
+   (PROG ((COLL-OF NATHANIEL.NAME Y) PLAY.V (K CATCH.N))
+    ** E0))))
+\end{verbatim}
+
+
+\section{Conclusion}
+The TTT language is well-suited to the applications it was aimed at,
+and is already proving useful in current syntactic/semantic
+processing applications. It provides a very concise, transparent
+way of specifying transformations that previously required
+extensive symbolic processing. Remaining issues (e.g., efficient access
+to rules that are locally relevant to a transduction; ...).
+
+The language also holds promise for rule-learning, thanks to its simple 
+template-to-template basic syntax. The kinds of learning envisioned
+are learning parse-tree repair rules, and perhaps also LF repair
+rules and LF-to-English rules (which is made plausible by the
+very English-like syntax of LF in Episodic Logic).
+%\section*{Acknowledgments}
+%NSF grants and ONR subcontract
+
+
+\begin{thebibliography}{}
+
+\bibitem[\protect\citename{Aho and Ullman}1972]{Aho:72}
+Alfred~V. Aho and Jeffrey~D. Ullman.
+\newblock 1972.
+\newblock {\em The Theory of Parsing, Translation and Compiling}, volume~1.
+\newblock Prentice-{Hall}, Englewood Cliffs, NJ.
+
+\bibitem[\protect\citename{{American Psychological Association}}1983]{APA:83}
+{American Psychological Association}.
+\newblock 1983.
+\newblock {\em Publications Manual}.
+\newblock American Psychological Association, Washington, DC.
+
+\bibitem[\protect\citename{{Association for Computing Machinery}}1983]{ACM:83}
+{Association for Computing Machinery}.
+\newblock 1983.
+\newblock {\em Computing Reviews}, 24(11):503--512.
+
+\bibitem[\protect\citename{Chandra \bgroup et al.\egroup }1981]{Chandra:81}
+Ashok~K. Chandra, Dexter~C. Kozen, and Larry~J. Stockmeyer.
+\newblock 1981.
+\newblock Alternation.
+\newblock {\em Journal of the Association for Computing Machinery},
+  28(1):114--133.
+
+\bibitem[\protect\citename{Gusfield}1997]{Gusfield:97}
+Dan Gusfield.
+\newblock 1997.
+\newblock {\em Algorithms on Strings, Trees and Sequences}.
+\newblock Cambridge University Press, Cambridge, UK.
+
+\end{thebibliography}
+
+\end{document}

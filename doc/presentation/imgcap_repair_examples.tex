@@ -1,0 +1,212 @@
+\begin {frame}{Application: Image Caption Repair}
+  We use T$^4$ to repair charniak (verify this) parses of image captions. \\
+  Currently, it has been applied to five (six) sentences with about a dozen hand-written rules.\\
+  The parses have been preprocessed for Knext, which replaces possessive pronouns with their base forms followed by the possessive 'S. 
+\end {frame}
+
+% would like to break this down into two slides for each rule application:   highlight the rule, the bound nodes of the tree in red, then highlight the rule and the bound nodes in blue
+% for T4, i need to print the tree, print each rule applied, and print the resulting tree
+\begin{frame} {First Tree}
+  Caption:\\
+  ``Tanya, in her black dress, with family at her graduation party.''\\
+
+  Charniak Parse (Knext preprocessed):\\
+  \resizebox{3in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NNP TANYA ]  ]   [ ., , ]   [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BLACK ]   [ .NN DRESS ]  ]  ]   [ ., , ]   [ .PP-WITH  [ .IN WITH ]   [ .NP  [ .NP  [ .NN FAMILY ]  ] [ .PP-AT  [ .IN AT ] [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .NN GRADUATION ] [ .NN PARTY ]  ]  ]  ]  ]  [ .. . ]  ]  ] 
+  }\\
+
+  Errors:\\
+  \begin{itemize}
+  \item   ``in her black dress'' is not attached to ``Tanya''
+  \item   ``at her graduation party'' is attached to ``family'' instead of ``Tanya''
+  \end{itemize}
+
+  Applicable Transductions:\\
+  \begin{itemize}
+  \item {\ttfamily \tiny (FRAG (NP \_+) (? (, ,)) (PP? \_+1) \_*) ==> (FRAG (NP (NP \_+) ? (PP? \_+1)) \_*)} 
+  \item {\ttfamily \tiny (\_+ ((!1 PP?) (IN \_!) (NP (NP \_+1) ((!2 PP?) \_+2))) \_*)\\ ==> (\_+ (!1 (IN \_!) (NP \_+1)) (!2 \_+2) \_*)}
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+  \frametitle{First Tree- Intermediate Form}
+\begin{verbatim}
+(S1
+ (FRAG (NP (NNP TANYA)) (|,| |,|)
+  (PP-IN (IN IN)
+   (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ BLACK) (NN DRESS)))
+  (|,| |,|)
+  (PP-WITH (IN WITH)
+   (NP (NP (NN FAMILY))
+    (PP-AT (IN AT)
+     (NP (DETP (NP (PRP SHE)) (POS |'S|)) (NN GRADUATION)
+      (NN PARTY)))))
+  (\. \.))) 
+\end{verbatim}
+
+  Transduction:\\
+  \texttt{(FRAG (NP \_+) (? (, ,)) (PP? \_+1) \_*) ==> (FRAG (NP (NP \_+) ? (PP? \_+1)) \_*)}\\
+
+\begin{verbatim}
+(S1
+ (FRAG
+  (NP (NP (NNP TANYA)) (|,| |,|)
+   (PP-IN (IN IN)
+    (NP (DETP (NP (PRP SHE)) (POS 'S)) (JJ BLACK) (NN DRESS))))
+  (|,| |,|)
+  (PP-WITH (IN WITH)
+   (NP (NP (NN FAMILY))
+    (PP-AT (IN AT)
+     (NP (DETP (NP (PRP SHE)) (POS 'S)) (NN GRADUATION) (NN PARTY)))))
+  (\. \.))) 
+\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{First Tree - Repaired}
+  Expression:\\
+\begin{verbatim}
+(S1
+ (FRAG
+  (NP (NP (NNP TANYA)) (|,| |,|)
+   (PP-IN (IN IN)
+    (NP (DETP (NP (PRP SHE)) (POS 'S)) (JJ BLACK) (NN DRESS))))
+  (|,| |,|)
+  (PP-WITH (IN WITH)
+   (NP (NP (NN FAMILY))
+    (PP-AT (IN AT)
+     (NP (DETP (NP (PRP SHE)) (POS 'S)) (NN GRADUATION) (NN PARTY)))))
+  (\. \.))) 
+\end{verbatim}
+
+  Transduction:\\
+  \texttt{(\_+ ((!1 PP?) (IN \_!) (NP (NP \_+1) ((!2 PP?) \_+2))) \_*) ==> (\_+ (!1 (IN \_!) (NP \_+1)) (!2 \_+2) \_*)}\\  
+
+Result:\\  
+\begin{verbatim}
+(S1
+ (FRAG
+  (NP (NP (NNP TANYA)) (|,| |,|)
+   (PP-IN (IN IN)
+    (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ BLACK) (NN DRESS))))
+  (|,| |,|) (PP-WITH (IN WITH) (NP (NN FAMILY)))
+  (PP-AT (IN AT)
+   (NP (DETP (NP (PRP SHE)) (POS |'S|)) (NN GRADUATION) (NN PARTY)))
+  (\. \.))) 
+\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile] 
+  \frametitle{Tree 1 - Result}
+  Original:\\
+  \resizebox{3in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NNP TANYA ]  ]   [ ., , ]   [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BLACK ]   [ .NN DRESS ]  ]  ]   [ ., , ]   [ .PP-WITH  [ .IN WITH ]   [ .NP  [ .NP  [ .NN FAMILY ]  ] [ .PP-AT  [ .IN AT ] [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .NN GRADUATION ] [ .NN PARTY ]  ]  ]  ]  ]  [ .. . ]  ]  ] 
+  }\\
+
+
+  Result:\\
+  \resizebox{2.5in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NP  [ .NNP TANYA ]  ]   [ ., , ]    [ .PP-IN  [ .IN IN ]   [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BLACK ]   [ .NN DRESS ]  ]  ]  ]   [ ., , ]   [ .PP-WITH  [ .IN WITH ]   [ .NP  [ .NN FAMILY ]  ]  ]    [ .PP-AT  [ .IN AT ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .NN GRADUATION ]   [ .NN PARTY ]  ]  ]   [ .. . ]  ]  ] 
+  }\\
+  Note: Need to move ``with family'' and ``at her graduation party'' inside the NP over ``Tanya'' so that they postmodify. 
+
+\end{frame}
+\begin{frame} {Second Tree}
+  Caption:\\
+  ``Halle, in her new blue Beatles shirt, and her big sister, Tanya.''\\
+  Charniak Parse (Preprocessed for Knext)):\\
+  \resizebox{3in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NNP HALLE ]  ]   [ ., , ]   [ .PP-IN  [ .IN IN ]  [ .NP [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ NEW ]   [ .JJ BLUE ]  [ .NNP BEATLES ]   [ .NN SHIRT ]  ]   [ ., , ]   [ .CC AND ]  [ .NP  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BIG ]  [ .NN SISTER ]  ]  [ ., , ]   [ .NP  [ .NNP TANYA ]  ]  ]  ]  ]   [ .. . ]  ]  ] 
+  }\\
+
+  Errors:\\
+  \begin{itemize}
+  \item ``in her new blue Beatles shirt'' not attached to ``Halle''
+  \item false coordination of ``her new blue Beatles shirt'' and ``her big sister, Tanya''
+  \end{itemize}
+
+  Rules applied:\\
+  \begin{itemize}
+  \item \texttt{(FRAG (NP \_+) (? (, ,)) (PP? \_+1) \_*) ==> (FRAG (NP (NP \_+) ? (PP? \_+1)) \_*)}
+  \item \texttt{(\_+ (PP? (IN \_!)(NP (NP \_* NN-NONHUMAN?) (, ,) (CC AND)(NP (NP \_*1 NN-HUMAN?) \_+1)))     \_*2) ==> (\_+ (PP? (IN \_!) (NP \_* NN-NONHUMAN?)) (, ,) (CC AND)  (NP (NP \_*1 NN-HUMAN?) \_+1) \_*2)}
+  \end{itemize}
+\end{frame} 
+\begin{frame}[fragile]
+  \frametitle{Second Tree - Intermediate Form}
+  Expression:\\
+\begin{verbatim}
+(S1
+ (FRAG (NP (NNP HALLE)) (|,| |,|)
+  (PP-IN (IN IN)
+   (NP
+    (NP (DETP (NP (PRP SHE)) (POS 'S)) (JJ NEW) (JJ BLUE) (NNP BEATLES)
+     (NN SHIRT))
+    (|,| |,|) (CC AND)
+    (NP (NP (DETP (NP (PRP SHE)) (POS 'S)) (JJ BIG) (NN SISTER))
+     (|,| |,|) (NP (NNP TANYA)))))
+  (\. \.))) 
+\end{verbatim}
+  
+  Transduction:\\
+  \texttt{(FRAG (NP \_+) (? (, ,)) (PP? \_+1) \_*) ==> (FRAG (NP (NP \_+) ? (PP? \_+1)) \_*)}\\
+
+Result:\\
+\begin{verbatim}
+(S1
+ (FRAG
+  (NP (NP (NNP HALLE)) (|,| |,|)
+   (PP-IN (IN IN)
+    (NP (DETP (NP (PRP SHE)) (POS 'S)) (JJ NEW) (JJ BLUE) (NNP BEATLES)
+     (NN SHIRT))))
+  (|,| |,|) (CC AND)
+  (NP (NP (DETP (NP (PRP SHE)) (POS 'S)) (JJ BIG) (NN SISTER))
+   (|,| |,|) (NP (NNP TANYA)))
+  (\. \.))) 
+\end{verbatim}
+\end{frame}
+\begin{frame}[fragile]
+  \frametitle{Second Tree - Repaired}
+\begin{verbatim}
+(S1
+ (FRAG (NP (NNP HALLE)) (||,|| ||,||)
+  (PP-IN (IN IN)
+   (NP
+    (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ NEW) (JJ BLUE)
+     (NNP BEATLES) (NN SHIRT))
+    (||,|| ||,||) (CC AND)
+    (NP (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ BIG) (NN SISTER))
+     (||,|| ||,||) (NP (NNP TANYA)))))
+  (\. \.))) 
+\end{verbatim}
+
+  Transduction:\\
+  \texttt{(\_+ (PP? (IN \_!)(NP (NP \_* NN-NONHUMAN?) (, ,) (CC AND)(NP (NP \_*1 NN-HUMAN?) \_+1)))     \_*2) ==> (\_+ (PP? (IN \_!) (NP \_* NN-NONHUMAN?)) (, ,) (CC AND)  (NP (NP \_*1 NN-HUMAN?) \_+1) \_*2)}\\
+
+\begin{verbatim}
+(S1
+ (FRAG
+  (NP (NP (NNP HALLE)) (|,| |,|)
+   (PP-IN (IN IN)
+    (NP (DETP (NP (PRP SHE)) (POS 'S)) (JJ NEW) (JJ BLUE) (NNP BEATLES)
+     (NN SHIRT))))
+  (|,| |,|) (CC AND)
+  (NP (NP (DETP (NP (PRP SHE)) (POS 'S)) (JJ BIG) (NN SISTER))
+   (|,| |,|) (NP (NNP TANYA)))
+  (\. \.))) 
+\end{verbatim}
+\end{frame}
+\begin{frame}
+  \frametitle{Tree 2 - Result}
+  Original:\\
+  \resizebox{3in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NNP HALLE ]  ]   [ ., , ]   [ .PP-IN  [ .IN IN ]  [ .NP [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ NEW ]   [ .JJ BLUE ]  [ .NNP BEATLES ]   [ .NN SHIRT ]  ]   [ ., , ]   [ .CC AND ]  [ .NP  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BIG ]  [ .NN SISTER ]  ]  [ ., , ]   [ .NP  [ .NNP TANYA ]  ]  ]  ]  ]   [ .. . ]  ]  ] 
+  }\\
+
+
+  Repaired:\\
+  \resizebox{2.5in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NP  [ .NNP HALLE ]  ]   [ ., , ]  [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ NEW ]   [ .JJ BLUE ]  [ .NNP BEATLES ]   [ .NN SHIRT ]  ]  ]  ]   [ ., , ]   [ .CC AND ] [ .NP  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BIG ]   [ .NN SISTER ]  ]  [ ., , ]   [ .NP  [ .NNP TANYA ]  ]  ]  [ .. . ]  ]  ] 
+  }\\
+  Note: Might want to enclose in another NP with a rule such as \texttt{(<> (NP \_+) (CC \_!)  (NP \_+))==>(NP $<>$)}, but this would need to be particularized. 
+\end{frame}

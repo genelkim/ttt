@@ -1,0 +1,496 @@
+\documentclass[8pt]{beamer}
+\usetheme{default}
+\usepackage{graphicx}
+\usepackage{color}
+%\usepackage{cite}
+\usepackage{pst-node,pst-tree}
+\usepackage{pst-qtree}
+\psset{levelsep=2.5em,treesep=0pt,treefit=tight}
+
+% second draft -- oct 19th, 11:58pm
+% modifications to make:
+%   add motivation at beginning  (see research/thoughts)
+%   add simple pattern examples
+%   add simple transduction examples 
+%   replace syntax slides with a few simple phrases (this is not a manual, and the syntax is a bit out of date)
+%   show trees in expression form during transductions
+%   investigate MacCartney and Mannings natural logic and their use of the tree transducer tsurgeon.
+% title
+% motivation   1-3 slides  (3-12 points)
+%  related work: tree transducers, tsurgeon (and how T^4 fills a void)
+% pattern features        (1 slide)  
+% pattern operators       (1 slide)   
+% example patterns        (1 slide)   (lisp expressions)
+% transduction features   (1 slide)   
+% example transductions   (1 slide)   (lisp expressions)
+% first image caption     (caption, charniak parse tree, charniak parse lisp expression, <transductions,intermediate lisp expressions>, final tree and final expression)
+% second image caption 
+% nondeterminism 
+% future work 
+\begin{document}
+
+\begin{frame}{T$^4$ - Tree To Tree Transduction}
+  \begin {center}
+    T$^4$ -  the Tree To Tree Transduction language\\
+    Overview for SKIL\\
+    Adam Purtee\\
+    Oct 21st, 2011\\
+  \end{center}
+\end{frame}
+
+\begin {frame} {Motivation}
+  \begin {itemize}
+  \item T$^4$ is a general purpose pattern matching and tree transduction language.  
+  \item It mixes the flavors of rewriting systems (specifically tree transducers) and sed. 
+  \item Current version is written in Lisp. 
+  \item Transductions may be template to template style (new) or local tree modifications (similar to tsurgeon, but more general).
+  \end{itemize}
+  Pattern matching and tree transducers are fundamental to several sub-fields of AI: natural language inference, Eliza style dialogue, knowledge extraction (e.g. Knext), and machine translation, among others.\\
+  
+  Knext preprocessing currently involves multiple, complicated lisp functions.   The preprocessing could be (more simply) implemented in T$^4$ .
+
+  
+  From len: 
+  \begin{itemize}
+  \item correction of systematic parser errors (we've been using Charniak)
+  \item correction of systematic errors in logical forms obtained from English (via Knext)
+  \item reranking parser outputs by injecting additional features corresponding to phrase structures that are often misparsed
+  \item disambiguation of ``SBAR'' constituents (can be rel clauses, adverbials, clausal nominals, or subord. clauses)  -thse can apply to gold trees, too!
+  \item disambiguation of ``have''; (have-as-part vs ``is holding''
+  \item lexical disambiguation
+  \item features for general classifiers
+  \item english genreation form EL logical forms 
+  \item parsing
+  \item interpretation
+  \item inference? 
+  \item plan construction and modification? 
+  \item postprocessing of unitial unscoped, indexical logical forms
+  \item sharpening of logical forms (see Jonathan's paper)
+  \item referent determination
+  \item quantifier scoping
+  \item Skolemization
+  \item de-indexing
+  \item elaboration of underspecified representations
+  \item ellipsis reconstruction
+  \end{itemize}
+  Because T$^4$ is both a pattern matcher and a tree transducer, it may be useful to each of the above areas.
+
+\end{frame}
+
+\begin{frame}{Pattern Matching in T$^4$}
+  \begin{itemize}
+    \item patterns are constructed from operators such as permutation, iteration, and tree traversal 
+    \item pattern operators may specify variables to which the matching subtrees are bound
+    \item arbitrary predicates are allowed on tree structure (e.g. balanced? pp? nn-human?)
+    \item easy to add new predicates and pattern operators
+    \item arbitrary (as long as they're computable) constraints on bindings are supported
+    \item bindings may be ``sticky'' or ``loose''
+    \item patterns are composable
+    \item matching may be deep (search for sequence of siblings) or shallow (only test the root)
+    \item any tree structure may be specified (not only those with atomic left-most children, as in tgrep)
+    \end{itemize}
+\end{frame}
+      
+
+\begin{frame}{Pattern Operators}
+  Patterns are composed of literal tree structure and operators.   There are ten distinct operators in T$^4$:\\
+  \begin{itemize}
+  \item !   - exactly one 
+  \item ?   - zero or one
+  \item +   - one or more 
+  \item *   - zero or more
+  \item <>  - ordered sequence
+  \item {}  - permuted sequence
+  \item \^{}n - depth-n children
+  \item \^{}* - descendant 
+  \item \^{}@ - vertical path
+  \item $\backslash$ - local transduction
+  \end{itemize}
+  
+  Each of these operators may take arguments.    The first four may also appear without arguments (although, this requies a preceeding underscore.)
+  Additionally, one may specify iterative constraints and additional binding information. 
+\end{frame}
+
+\begin{frame}{Example Patterns}
+  Pattern                                      Bindings
+  (A \_! C)             (A B C)                 (\_! B)
+  (\_* F)               (A B (C D E) F)         (\_*  A B (C D E))
+  (A B \_? F)                                   (\_? (C D E))
+  (A B \_? (C D E) F)                           (\_? )
+  (^@ \_! (C \_*) E)                             (^@ (A B (C D E) F))  (\_* D E)
+  (A B (<> (C D E)) F)                         (<> (C D E))
+  (A B (<> C D E) F)                           fail
+
+  (! (+ A) (+ B))      matches a non-empty sequence of As or a non-empty sequence of B's, but not a sequence containing both
+  (* (<> A A))         matches a sequence of an even number of A's
+  (B (* (<> B B)))     matches a sequence of an odd number of B's
+  (({} A B C))         matches (A B C) (A C B) (B A C) (B C A) (C A B) and (C B A) and nothing else
+  ((<> A B C))         matches (A B C) and nothing else
+  (^* X)               match any tree with descendant X
+  
+  (^@ (+  (@ \_*)) X)    match a tree with leftmost leaf ``X''
+ 
+
+\end{frame}
+
+\begin{frame}{Transductions in T$^4$}
+  The bindings created as a result of a successful pattern match may be used to construct new trees. 
+  A transduction is a transformation of one tree into another.   The resulting tree can be radically different (such as involving changes to the root) or simply be the result of modifications to a subtree of the original tree. \\
+
+  Transductions are specified in one of two ways: 
+  \begin{itemize}
+  \item template-to-template
+  \item single template with local modification
+  \end{itemize}
+  
+  While the two forms are likely equivalent in expressive power, for a few transductions (such as those involving long vertical paths) it is easier to use the second form. \\
+
+  The primary operation of T$^4$ is to apply a set of transduction rules to a set of trees, transforming them into a more desirable state.   Note that, in general, transducitons rules do not commute, so some nondeterminsm lurks nearby.  This will be discussed in a later slide. 
+\end{frame}
+
+
+\begin{frame}{Example Transductions}
+
+  (A B (X Y ( Z X K)) T)    
+
+  (/ X Y)                (A B (Y Y (Z Y K)) T)
+  (/ (A B \_*) (A \_*))    (A (X Y (Z X K)) T)
+  (\_! \_*) => (\_* \_!)     (T A B (X Y (Z X K)))  ... (A B (X Y (Z X K)) T) ... 
+  (\_+ (Z \_! K)) => (\_! \_+)   (A B (X X Y) T)
+
+  (^@ (S-REL \_+) (* ((! ~ S SBAR SBARQ SQ) \_+1))  ((!1 WP WP\$ WRB WDT) \_!) ) ==>
+  (^@ (S-REL \_+) * ((attach-rel! !1) \_!))
+
+  (S-REL (SBAR X (WRB Y)))  (S-REL (SBAR X (REL-WB Y)))
+  - but unmodified without the enclosing S-REL
+  
+  delete '() from a corpus:
+  (\_*1 () \_*2) => (\_*1 \_*2))
+
+  (A B () C) becomes (A B C)
+
+  verb specification:
+  (VB gotta) => (MD gotta)
+  
+  PP specification: 
+  (PP \_* (IN \_!) \_*1) => ((join-with-dash! PP \_!) \_* (IN \_!) \_*1))
+
+  (PP (IN TO) (NP (DETP THE) (NN STORE)))   becomes (PP-TO (IN TO) (NP (DETP THE) (NN STORE)))
+  (PP (IN FROM) (NP (DETP THE) (NN STORE)))   becomes (PP-FROM (IN FROM) (NP (DETP THE) (NN STORE)))
+
+
+
+\end{frame}
+
+\begin{frame}{Nondeterminism}
+  Nondeterminism arises in two ways:
+  \begin{itemize}
+  \item rule selection - transductions are not commutative
+  \item bindings  - a template may match a tree in multiple ways  [Ex: (\_* \_*1) => (\_*) ] or in multiple places [Ex: \_! matches every node.]
+  \end{itemize}
+  Therefore some trees may have many reduced forms, and even more ``reachable'' forms. 
+  
+  One can imagine a few ways to tackle this: 
+  \begin{itemize}
+  \item Exhaustive exploration - Given a tree and a set of transductions, attempt to compute all reduced forms.   [note: it is possible for this to be an infinite set.]
+  \item Probabilistic search - easy to assign weights to transductions, not as obvious how to assign weights to bindings, or transduction/location pairs. 
+  \item What we actually do - Given a tree and a list of transductions, for each transduction (in order), apply the transduction in top-down fashion in each feasible location (matching lhs), always using the first binding which results from a ``left most'' search.
+  \end{itemize}
+  The first method has the unfortunate effect of transducing one tree into many (bad for parse repair, probably bad for other applications as well).
+  The latter method is particularly reasonable when your set of transductions is not prone to interaction or multiple overlapping bindings.
+\end{frame}
+
+    
+\begin {frame}{Application: Image Caption Repair}
+  We use T$^4$ to repair charniak (verify this) parses of image captions. \\
+  Currently, it has been applied to five (six) sentences with about a dozen hand-written rules.\\
+  The parses have been preprocessed for Knext, which replaces possessive pronouns with their base forms followed by the possessive 'S. 
+\end {frame}
+
+% would like to break this down into two slides for each rule application:   highlight the rule, the bound nodes of the tree in red, then highlight the rule and the bound nodes in blue
+% for T4, i need to print the tree, print each rule applied, and print the resulting tree
+\begin{frame} {Tree 1}
+  Caption:\\
+  ``Noah Friedland, upper right, with friends and family at his book signing.''\\
+  Charniak Parse (Preprocessed for Knext):\\
+  \resizebox{2.5in}{!}{ 
+    \Tree [ .S1  [ .NP  [ .NP  [ .NNP NOAH FRIEDLAND ]  ]   [ .$|$,$|$ $|$,$|$ ]   [ .NP  [ .JJ UPPER ]   [ .NN RIGHT ]  ]   [ .$|$,$|$ $|$,$|$ ]   [ .PP-WITH  [ .IN WITH ]     [ .NP  [ .NP  [ .NNS FRIENDS ]  ]   [ .CC AND ]  			 [ .NP  [ .NP  [ .NN FAMILY ]  ]  [ .PP-AT  [ .IN AT ]  [ .NP  [ .DETP  [ .NP  [ .PRP HE ]  ]   [ .POS $|$'S$|$ ]  ]   [ .NN BOOK ]   [ .NN SIGNING ]  ]  ]  ]  ]  ]     [ .$|$.$|$ $|$.$|$ ]  ]  ] 
+  }\\
+  Errors:\\
+  \begin{itemize}
+  \item attachment-to-last-conjunct 
+  \end{itemize}
+  Applicable Transductions:
+  \begin{itemize}
+  \item \texttt{(\_+ (NP (+ ($<>$ (NP \_+1) (? (|,| |,|)))) (CC and) (NP (NP \_+2) (! (PP? locative-p? \_+3)))) \_*) ==> '(\_+ (NP $<>$ (CC and) (NP \_+2)) ! \_*))}
+  \end{itemize}
+\end{frame}
+\begin{frame} {Tree 1 - transduced}
+  \resizebox{2.5in}{!}{ 
+    \Tree [ .S1  [ .NP  [ .NP  [ .NNP NOAH FRIEDLAND ]  ]   [ .$|$,$|$ $|$,$|$ ]   [ .NP  [ .JJ UPPER ]   [ .NN RIGHT ]  ]   [ .$|$,$|$ $|$,$|$ ]   [ .PP-WITH  [ .IN WITH ]     [ .NP  [ .NP  [ .NNS FRIENDS ]  ]   [ .CC AND ]  			 [ .NP  [ .NP  [ .NN FAMILY ]  ]  [ .PP-AT  [ .IN AT ]  [ .NP  [ .DETP  [ .NP  [ .PRP HE ]  ]   [ .POS $|$'S$|$ ]  ]   [ .NN BOOK ]   [ .NN SIGNING ]  ]  ]  ]  ]  ]     [ .$|$.$|$ $|$.$|$ ]  ]  ] 
+  }\\
+  After application of rule:\\
+  \texttt{(\_+ (NP (+ ($<>$ (NP \_+1) (? (|,| |,|)))) (CC and) (NP (NP \_+2) (! (PP? locative-p? \_+3)))) \_*) ==> '(\_+ (NP $<>$ (CC and) (NP \_+2)) ! \_*))}
+
+  %wrap nodes in {{/color{red}}} to change color
+  \resizebox{2.5in}{!}{ 
+    \Tree [ .S1  [ .NP  [ .NP  [ .NNP NOAH FRIEDLAND ]  ]   [ .$|$,$|$ $|$,$|$ ]   [ .NP  [ .JJ UPPER ]   [ .NN RIGHT ]  ]  [ .$|$,$|$ $|$,$|$ ]  [ .PP-WITH  [ .IN WITH ]   [ .NP  [ .NP  [ .NNS FRIENDS ]  ]   [ .CC AND ]   [ .NP  [ .NN FAMILY ]  ]  ]  [ .PP-AT  [ .IN AT ] [ .NP  [ .DETP  [ .NP  [ .PRP HE ]  ]   [ .POS $|$'S$|$ ]  ]   [ .NN BOOK ]   [ .NN SIGNING ]  ]  ]  ]  [ .. . ]  ]  ]  
+  }\\
+  Note: There is still room for improvement on this one (to make ``at his book signing'' a sibling of ``with friends and family'' not just ``friends and family'', and to add an enclosing NP around the entire caption. 
+  
+\end{frame}
+
+\begin{frame} {Tree 2}
+  Caption:\\
+  ``Tanya, in her black dress, with family at her graduation party.''\\
+
+  Charniak Parse (Knext preprocessed):\\
+  \resizebox{3in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NNP TANYA ]  ]   [ ., , ]   [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BLACK ]   [ .NN DRESS ]  ]  ]   [ ., , ]   [ .PP-WITH  [ .IN WITH ]   [ .NP  [ .NP  [ .NN FAMILY ]  ] [ .PP-AT  [ .IN AT ] [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .NN GRADUATION ] [ .NN PARTY ]  ]  ]  ]  ]  [ .. . ]  ]  ] 
+  }\\
+
+  Errors:\\
+  \begin{itemize}
+  \item   ``in her black dress'' is not attached to ``Tanya''
+  \item   ``at her graduation party'' is attached to ``family'' instead of ``Tanya''
+  \end{itemize}
+
+  Applicable Transductions:\\
+  \begin{itemize}
+  \item {\ttfamily \tiny (FRAG (NP \_+) (? (, ,)) (PP? \_+1) \_*) ==> (FRAG (NP (NP \_+) ? (PP? \_+1)) \_*)} 
+  \item {\ttfamily \tiny (\_+ ((!1 PP?) (IN \_!) (NP (NP \_+1) ((!2 PP?) \_+2))) \_*)\\ ==> (\_+ (!1 (IN \_!) (NP \_+1)) (!2 \_+2) \_*)}
+  \end{itemize}
+\end{frame}
+\begin{frame} {Tree 2 - transduced}
+  \resizebox{3in}{!}{ %charn of t2
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NNP TANYA ]  ]   [ ., , ]   [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BLACK ]   [ .NN DRESS ]  ]  ]   [ ., , ]   [ .PP-WITH  [ .IN WITH ]   [ .NP  [ .NP  [ .NN FAMILY ]  ] [ .PP-AT  [ .IN AT ] [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .NN GRADUATION ] [ .NN PARTY ]  ]  ]  ]  ]  [ .. . ]  ]  ] 
+  }\\
+
+  Transduction:\\
+  \texttt{(FRAG (NP \_+) (? (, ,)) (PP? \_+1) \_*) ==> (FRAG (NP (NP \_+) ? (PP? \_+1)) \_*)}\\
+
+  \resizebox{3in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NP  [ .NNP TANYA ]  ]   [ ., , ]   [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BLACK ]  [ .NN DRESS ]  ]  ]  ]    [ ., , ]   [ .PP-WITH  [ .IN WITH ]  [ .NP  [ .NP  [ .NN FAMILY ]  ]  [ .PP-AT  [ .IN AT ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .NN GRADUATION ]    [ .NN PARTY ]  ]  ]  ]  ]   [ .. . ]  ]  ] 
+  }
+
+\end{frame}
+\begin{frame} {Tree 2 - transduced}
+  \resizebox{2.5in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NP  [ .NNP TANYA ]  ]   [ ., , ]   [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BLACK ]  [ .NN DRESS ]  ]  ]  ]    [ ., , ]   [ .PP-WITH  [ .IN WITH ]  [ .NP  [ .NP  [ .NN FAMILY ]  ]  [ .PP-AT  [ .IN AT ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .NN GRADUATION ]    [ .NN PARTY ]  ]  ]  ]  ]   [ .. . ]  ]  ] 
+  }
+
+  Transduction:\\
+  \texttt{(\_+ ((!1 PP?) (IN \_!) (NP (NP \_+1) ((!2 PP?) \_+2))) \_*) ==> (\_+ (!1 (IN \_!) (NP \_+1)) (!2 \_+2) \_*)}\\  
+
+  \resizebox{2.5in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NP  [ .NNP TANYA ]  ]   [ ., , ]    [ .PP-IN  [ .IN IN ]   [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BLACK ]   [ .NN DRESS ]  ]  ]  ]   [ ., , ]   [ .PP-WITH  [ .IN WITH ]   [ .NP  [ .NN FAMILY ]  ]  ]    [ .PP-AT  [ .IN AT ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .NN GRADUATION ]   [ .NN PARTY ]  ]  ]   [ .. . ]  ]  ] 
+  }\\
+  Note: Need to move ``with family'' and ``at her graduation party'' inside the NP over ``Tanya'' so that they postmodify. 
+\end{frame}
+\begin{frame} {Tree 3}
+  Caption:\\
+  ``Halle, in her new blue Beatles shirt, and her big sister, Tanya.''\\
+  Charniak Parse (Preprocessed for Knext)):\\
+  \resizebox{3in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NNP HALLE ]  ]   [ ., , ]   [ .PP-IN  [ .IN IN ]  [ .NP [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ NEW ]   [ .JJ BLUE ]  [ .NNP BEATLES ]   [ .NN SHIRT ]  ]   [ ., , ]   [ .CC AND ]  [ .NP  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BIG ]  [ .NN SISTER ]  ]  [ ., , ]   [ .NP  [ .NNP TANYA ]  ]  ]  ]  ]   [ .. . ]  ]  ] 
+  }\\
+
+  Errors:\\
+  \begin{itemize}
+  \item ``in her new blue Beatles shirt'' not attached to ``Halle''
+  \item false coordination of ``her new blue Beatles shirt'' and ``her big sister, Tanya''
+  \end{itemize}
+
+  Rules applied:\\
+  \begin{itemize}
+  \item \texttt{(FRAG (NP \_+) (? (, ,)) (PP? \_+1) \_*) ==> (FRAG (NP (NP \_+) ? (PP? \_+1)) \_*)}
+  \item \texttt{(\_+ (PP? (IN \_!)(NP (NP \_* NN-NONHUMAN?) (, ,) (CC AND)(NP (NP \_*1 NN-HUMAN?) \_+1)))     \_*2) ==> (\_+ (PP? (IN \_!) (NP \_* NN-NONHUMAN?)) (, ,) (CC AND)  (NP (NP \_*1 NN-HUMAN?) \_+1) \_*2)}
+  \end{itemize}
+\end{frame} 
+\begin{frame}{Tree 3 - transduced}
+  \resizebox{3in}{!}{  %cparse
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NNP HALLE ]  ]   [ ., , ]   [ .PP-IN  [ .IN IN ]  [ .NP [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ NEW ]   [ .JJ BLUE ]  [ .NNP BEATLES ]   [ .NN SHIRT ]  ]   [ ., , ]   [ .CC AND ]  [ .NP  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BIG ]  [ .NN SISTER ]  ]  [ ., , ]   [ .NP  [ .NNP TANYA ]  ]  ]  ]  ]   [ .. . ]  ]  ] 
+  }\\
+
+  Transduction:\\
+  \texttt{(FRAG (NP \_+) (? (, ,)) (PP? \_+1) \_*) ==> (FRAG (NP (NP \_+) ? (PP? \_+1)) \_*)}\\
+
+  \resizebox{3in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NNP HALLE ]  ]   [ ., , ]  [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ NEW ]   [ .JJ BLUE ]   [ .NNP BEATLES ]   [ .NN SHIRT ]  ]  ]  [ ., , ]   [ .CC AND ]   [ .NP  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BIG ]   [ .NN SISTER ]  ]   [ ., , ]   [ .NP  [ .NNP TANYA ]  ]  ]  [ .. . ]  ]  ] 
+  }\\
+\end{frame}
+\begin{frame}{Tree 3 - transduced}
+  \resizebox{2.5in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NNP HALLE ]  ]   [ ., , ]  [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ NEW ]   [ .JJ BLUE ]   [ .NNP BEATLES ]   [ .NN SHIRT ]  ]  ]  [ ., , ]   [ .CC AND ]   [ .NP  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BIG ]   [ .NN SISTER ]  ]   [ ., , ]   [ .NP  [ .NNP TANYA ]  ]  ]  [ .. . ]  ]  ] 
+  }\\
+  Transduction:\\
+  \texttt{(\_+ (PP? (IN \_!)(NP (NP \_* NN-NONHUMAN?) (, ,) (CC AND)(NP (NP \_*1 NN-HUMAN?) \_+1)))     \_*2) ==> (\_+ (PP? (IN \_!) (NP \_* NN-NONHUMAN?)) (, ,) (CC AND)  (NP (NP \_*1 NN-HUMAN?) \_+1) \_*2)}\\
+
+  \resizebox{2.5in}{!}{ 
+    \Tree [ .S1 [ .FRAG  [ .NP  [ .NP  [ .NNP HALLE ]  ]   [ ., , ]  [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ NEW ]   [ .JJ BLUE ]  [ .NNP BEATLES ]   [ .NN SHIRT ]  ]  ]  ]   [ ., , ]   [ .CC AND ] [ .NP  [ .NP  [ .DETP  [ .NP  [ .PRP SHE ]  ]   [ .POS 'S ]  ]   [ .JJ BIG ]   [ .NN SISTER ]  ]  [ ., , ]   [ .NP  [ .NNP TANYA ]  ]  ]  [ .. . ]  ]  ] 
+  }\\
+  Note: Might want to enclose in another NP with a rule such as \texttt{(<> (NP \_+) (CC \_!)  (NP \_+))==>(NP <>)}, but this would need to be particularized. 
+\end{frame}
+\begin{frame} {Tree 4}
+  Caption:\\
+  ``Tanya, John, Halle, and little Ben on the first day of school, 2009.''\\
+
+  Charniak Parse (Knext preprocessed):\\
+  \resizebox{2.5in}{!}{ 
+    \Tree [ .S1 [ .NP  [ .NP  [ .NNP TANYA ]  ]   [ ., , ]  [ .NP  [ .NP  [ .NP  [ .NNP JOSH ]  ]   [ ., , ]   [ .NP  [ .NNP HALLE ]  ]   [ .CC AND ]  [ .NP  [ .NP  [ .JJ LITTLE ]   [ .NNP BEN ]  ]  [ .PP-ON  [ .IN ON ]   [ .NP  [ .NP  [ .DT THE ]   [ .JJ FIRST ]   [ .NN DAY ]  ]   [ .PP-OF  [ .IN OF ]   [ .NP  [ .NN SCHOOL ]  ]  ]  ]  ]  ]  ]   [ ., , ]   [ .NP  [ .CD 2009 ]  ]  ]  [ .. . ]  ]  ] 
+  }\\
+
+  Errors(directly from Len's email):\\
+  \begin{itemize}
+  \item  The NP ``Josh, Halle and little Ben'' was attached as if appositively to NP ``Tanya''
+  \item  The PP ``on the first day of school'' was attached to the NP ``little Ben''
+  \item  The NP ``2009'' was attached as if appositively to ``Josh, Halle and little Ben''
+  \end{itemize}
+
+  Rule applied:\\
+  \begin{itemize}
+  \item \texttt{(\_+ (NP (<> (NP \_* (NNP \_!)) (? (|,| |,|))) (NP (NP (<>1 (NP \_* (NNP \_!)) (|,| |,|) (NP \_* (NNP \_!)) (CC AND)) (NP (! (NP \_* (NNP \_!))) PPT?))  \_+1) \_+2)) ==>  '(\_+ (NP (NP <> <>1 !) PPT? \_+1 \_+2)))}
+  \end{itemize}
+\end{frame}
+\begin{frame}{Tree 4 - comment}
+  There was much discussion on this particular parse.\\
+  Len's original rule, intended to flatten NP[proper] + conjunction starting and ending with NP[proper] into a single conjunction, was:\\
+  \texttt{(\_+ (NP \_* (NNP \_+1)) (? (, ,)) (\^{}@ (* (NP @)) (NP (NP \_*1 (NNP \_+3)) (*1 ({} (NP \_+4) (?1 (, ,)))) (CC (! and or)) (NP \_*2 (NNP \_+5)))))
+     ==>   (\_+ ((NP \_* (NNP \_+1)) ? (NP \_*1 (NNP \_+3)) *1 (CC (! and or)) (NP \_*2 (NNP\_+5))))}\\
+  I wrote the above rule to ``make things work'' and intended to return to this example and use the more elegant repair, but haven't done that yet at the time of this presentation.
+  The discussion (via email) of this parse is something I will take a closer look at.
+\end{frame}
+\begin{frame}{Tree 4 - transduced}     
+  \resizebox{2.25in}{!}{ %cparse
+    \Tree [ .S1 [ .NP  [ .NP  [ .NNP TANYA ]  ]   [ ., , ]  [ .NP  [ .NP  [ .NP  [ .NNP JOSH ]  ]   [ ., , ]   [ .NP  [ .NNP HALLE ]  ]   [ .CC AND ]  [ .NP  [ .NP  [ .JJ LITTLE ]   [ .NNP BEN ]  ]  [ .PP-ON  [ .IN ON ]   [ .NP  [ .NP  [ .DT THE ]   [ .JJ FIRST ]   [ .NN DAY ]  ]   [ .PP-OF  [ .IN OF ]   [ .NP  [ .NN SCHOOL ]  ]  ]  ]  ]  ]  ]   [ ., , ]   [ .NP  [ .CD 2009 ]  ]  ]  [ .. . ]  ]  ] 
+  }\\
+
+  Transduction:\\
+  \texttt{(\_+ (NP (<> (NP \_* (NNP \_!)) (? (|,| |,|))) (NP (NP (<>1 (NP \_* (NNP \_!)) (|,| |,|) (NP \_* (NNP \_!)) (CC AND)) (NP (! (NP \_* (NNP \_!))) PPT?))  \_+1) \_+2)) ==>  '(\_+ (NP (NP <> <>1 !) PPT? \_+1 \_+2)))}\\
+
+  \resizebox{2.25in}{!}{ 
+    \Tree [ .S1  [ .NP [ .NP  [ .NP  [ .NNP TANYA ]  ]   [ ., , ]   [ .NP  [ .NNP JOSH ]  ]   [ ., , ]  [ .NP  [ .NNP HALLE ]  ]   [ .CC AND ]   [ .NP  [ .JJ LITTLE ]   [ .NNP BEN ]  ]  ]  [ .PP-ON  [ .IN ON ]   [ .NP  [ .NP  [ .DT THE ]   [ .JJ FIRST ]   [ .NN DAY ]  ]  [ .PP-OF  [ .IN OF ]   [ .NP  [ .NN SCHOOL ]  ]  ]  ]  ]   [ ., , ]   [ .NP [ .CD 2009 ]  ]   [ .. . ]  ]  ] 
+  }
+\end{frame}
+\begin{frame} {Tree 5}
+  Caption:\\
+  ``Ben, lokoing dapper, in his green shirt, with Grandma Lillian at The Summit.''\\
+
+  Charniak Parse (Preprocessed for Knext):\\
+  \resizebox{3in}{!}{ 
+    \Tree [ .S1 [ .NP  [ .NP  [ .NNP BEN ]  ]   [ .$|$,$|$ $|$,$|$ ]  [ .VP  [ .VBG LOOKING ]   [ .NP  [ .NP  [ .NN DAPPER ]  ]  [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP HE ]  ]   [ .POS $|$'S$|$ ]  ]   [ .JJ GREEN ]   [ .NN SHIRT ]  ]  ]  ]  ]  [ .$|$,$|$ $|$,$|$ ]  [ .PP-WITH  [ .IN WITH ]   [ .NP  [ .NP  [ .NNP GRANDMA LILLIAN ]  ]  [ .PP-AT  [ .IN AT ]   [ .NP  [ .DT THE ]   [ .NN SUMMIT ]  ]  ]  ]  ]   [ .. . ]  ]  ]  ] 
+  }\\
+
+  Errors(directly from Len's email):\\
+  \begin{itemize}
+  \item ``dapper'' is misanalyzed as a noun
+  \item ``in his green shirt'' is attached to the putative noun, ``dapper''
+  \item ``at The Summit'' is attached to ``Grandma Lillian''
+  \end{itemize}
+  
+  Rule applied:\\
+  \begin{itemize}
+  \item \texttt{(\_+ ((!1 PP?) (IN \_!) (NP (NP \_+1) ((!2 PP?) \_+2))) \_*) ==> (\_+ (!1 (IN \_!) (NP \_+1)) (!2 \_+2) \_*)}
+  \end{itemize}
+
+  Notes (from Len's email):\\
+  \begin{itemize}
+  \item The detachment of ``in his green shirt'' from the putative noun, ``dapper''  should be handled by a previously mentioned rule. (Is it?)
+  \item Likewise for detachment of ``at The Summit'' from ``Grandma Lillian'' (Is it?)
+  \end{itemize}
+\end{frame}  
+\begin{frame}{Tree 5 - transduced}
+  \resizebox{2.5in}{!}{ 
+    \Tree [ .S1 [ .NP  [ .NP  [ .NNP BEN ]  ]   [ .$|$,$|$ $|$,$|$ ]  [ .VP  [ .VBG LOOKING ]   [ .NP  [ .NP  [ .NN DAPPER ]  ]  [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP HE ]  ]   [ .POS $|$'S$|$ ]  ]   [ .JJ GREEN ]   [ .NN SHIRT ]  ]  ]  ]  ]  [ .$|$,$|$ $|$,$|$ ]  [ .PP-WITH  [ .IN WITH ]   [ .NP  [ .NP  [ .NNP GRANDMA LILLIAN ]  ]  [ .PP-AT  [ .IN AT ]   [ .NP  [ .DT THE ]   [ .NN SUMMIT ]  ]  ]  ]  ]   [ .. . ]  ]  ]  ] 
+  }\\
+  Transduction:\\
+  \texttt{(\_+ ((!1 PP?) (IN \_!) (NP (NP \_+1) ((!2 PP?) \_+2))) \_*) ==> (\_+ (!1 (IN \_!) (NP \_+1)) (!2 \_+2) \_*)}\\
+  
+  \resizebox{3in}{!}{ 
+    \Tree [ .S1  [ .NP  [ .NP  [ .NNP BEN ]  ]   [ ., , ]  [ .VP  [ .VBG LOOKING ]  [ .NP  [ .NP  [ .NN DAPPER ]  ]  [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP HE ]  ]   [ .POS 'S ]  ]   [ .JJ GREEN ]  [ .NN SHIRT ]  ]  ]  ]  ]   [ ., , ]   [ .PP-WITH  [ .IN WITH ]   [ .NP  [ .NNP GRANDMA LILLIAN ]  ]  ]  [ .PP-AT  [ .IN AT ]   [ .NP  [ .DT THE ]   [ .NN SUMMIT ]  ]  ]   [ .. . ]  ]  ]  
+  }\\
+  Note: Dapper should (always) be JJ, instead of NN.  Should this be bracketed as (ben)/np (looking dapper)/vp (in his green shirt)/pp (with ...)/pp (at ...)/pp? 
+\end{frame}
+\begin{frame} {Tree 5a}
+  Caption:\\
+  ``Ben, looking very dapper in his green shirt, with Grandma Lillian at The Summit.''\\
+
+  Charniak Parse (Knext preprocessed):\\
+  \resizebox{3in}{!}{ %cparse
+    \Tree [ .S1 [ .S  [ .NP  [ .NNP BEN ]  ]   [ ., , ]    [ .VP  [ .VBG LOOKING ]  [ .ADJP  [ .RB VERY ]   [ .JJ DAPPER ] [ .PP  [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP HE ]  ]   [ .POS 'S ]  ]   [ .JJ GREEN ]   [ .NN SHIRT ]  ]  ]   [ ., , ]   [ .PP-WITH  [ .IN WITH ]   [ .NP  [ .NNP GRANDMA LILLIAN ]  ]  ]  ]  ]   [ .PP-AT  [ .IN AT ]   [ .NP  [ .DT THE ]   [ .NN SUMMIT ]  ]  ]  ]  [ .. . ]  ]  ] 
+  }
+
+  Rule applied:
+  \begin{itemize}
+  \item \texttt{(\_+ (ADJP \_+1 (<> (PP? \_+2) (? (, ,)))) \_*) ==> (\_+ (ADJP \_+1) <> \_*)}
+  \end{itemize}
+\end{frame}
+\begin{frame}{Tree 5a -repaired}
+  \resizebox{2.5in}{!}{ %cparse
+    \Tree [ .S1 [ .S  [ .NP  [ .NNP BEN ]  ]   [ ., , ]    [ .VP  [ .VBG LOOKING ]  [ .ADJP  [ .RB VERY ]   [ .JJ DAPPER ] [ .PP  [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP HE ]  ]   [ .POS 'S ]  ]   [ .JJ GREEN ]   [ .NN SHIRT ]  ]  ]   [ ., , ]   [ .PP-WITH  [ .IN WITH ]   [ .NP  [ .NNP GRANDMA LILLIAN ]  ]  ]  ]  ]   [ .PP-AT  [ .IN AT ]   [ .NP  [ .DT THE ]   [ .NN SUMMIT ]  ]  ]  ]  [ .. . ]  ]  ] 
+  }
+  
+  Transduction:\\
+  \texttt{(\_+ (ADJP \_+1 (<> (PP? \_+2) (? (, ,)))) \_*) ==> (\_+ (ADJP \_+1) <> \_*)}\\
+
+  \resizebox{2.5in}{!}{ 
+    \Tree [ .S1 [ .S  [ .NP  [ .NNP BEN ]  ]   [ ., , ]  [ .VP  [ .VBG LOOKING ]   [ .ADJP  [ .RB VERY ]   [ .JJ DAPPER ]  ]     [ .PP  [ .PP-IN  [ .IN IN ]  [ .NP  [ .DETP  [ .NP  [ .PRP HE ]  ]   [ .POS 'S ]  ]   [ .JJ GREEN ]  [ .NN SHIRT ]  ]  ]  [ ., , ]   [ .PP-WITH  [ .IN WITH ]   [ .NP  [ .NNP GRANDMA LILLIAN ]  ]  ]  ]  [ .PP-AT  [ .IN AT ]   [ .NP  [ .DT THE ]   [ .NN SUMMIT ]  ]  ]  ]   [ .. . ]  ]  ] 
+  }\\
+  
+  Note: As with the previous  parse, I am unsure how this should be properly done.  (Is he (looking (dapper in his green shirt)) or (looking dapper) \_and\_ (in his green shirt)?)
+\end{frame}
+
+
+\begin{frame}{Related Things}
+  \begin{itemize}
+  \item TGrep2 / Tsurgeon\\ tgrep functions
+    \begin{itemize}
+    \item dominance
+    \item last child
+    \item leftmost/rightmost descendant
+    \item precedes
+    \item sisterhood
+    \item negation
+    \item alternation
+    \end{itemzie}   
+    T$^4$ has all these.... and isn't limited to parse trees (first child may be non-atomic)
+  \item MBOTs
+  \item STSG
+  \item Wikipedia page on abstract rewriting systems
+  \item How does it extend these?  (really more a question for me to answer so that I am aware of the world...)
+    \begin{itemize}
+    \item CL-match
+    \item araneida
+    \item paip
+    \end{itemize}
+  \end{itemize}
+
+  Applications:
+  \begin{itemize}
+  \item parse repair (this talk)
+  \item preprocessing
+  \item treebank analysis (lexical dependency statistics)
+  \item semantic parsing (direct conversion of syntactic parses to logical forms)
+  \item machine translation? 
+  \end{itemize}
+\end{frame}
+  
+\begin{frame}{Next things} 
+  \begin{itemize}
+  \item write the exhaustive search
+  \item manually write additional repair rules
+  \item find parameterizations of rules which enable learning of new rules
+  \item conduct larger scale tests of parse repairs: use petrov, charniak-johnson (reranking), and charniak (verify), eval on wsj
+  \item simlulate other tree transducers/learning procedures
+  \item tune via hand-optimizations and possible self-tuning
+  \item convert to shell-level command (callable without directly messing with lisp) -- enables file-system level parallelism
+  \item investigate parallelizing the actual code
+  \item add logical connectives on predicates
+  \item make efficient by replacing these naive recursive algorithms with dynamic programming (see email apr 26)
+  \item implement match-all (return all sets of bindings which match... can this be infinite? )
+  \item implement construct-all
+  \item More work needs to be done generalizing and particularizing the existing rules.
+  \end{itemize}
+\end{frame}
+
+\end{document}
