@@ -1,3 +1,6 @@
+.svn/
+.*.swp
+
 *.FASL
 *.fasl
 *.lisp-temp
