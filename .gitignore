@@ -1,5 +1,6 @@
 .svn/
 .*.swp
+*~
 
 *.FASL
 *.fasl
