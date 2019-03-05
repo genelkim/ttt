@@ -1,0 +1,99 @@
+haskell, ml, mathematica have tree patterns
+
+Haskell 
+(ColorConstructor Integer String)
+_), _  - can these match sequences, how deep can the patterns be? 
+
+
+Mathematica 
+_ - seems to match any single entity, allows variable bindings with prepend "var_"
+  - allows tree patterns such as a[b[_], _]
+  - no arbitrary vertical paths
+  
+  supports _! _* _+  ! ![n], *[n] +[n] (! ~ patt) <>
+  conditionals, constraints, predicates
+
+  longest and shortest are not available in TTT
+
+
+  Replace   - only top-level, once   apploies a list in order, return at first success
+    - levelspec is sophisticated way of controlling depth (or restricting ot only leaves)
+    - rhs evaluation can be delayed
+  ReplaceAll
+  ReplaceRepeated    -apply-rule
+   
+
+
+   sequences allowed on lhs
+   ReplaceList reutrns all possible replacements...
+ - note: replacement slash is same as mathematica
+
+mathematica has efficient dispatch method for handling multiple rules
+
+
+Rules & Patterns - Wolfram Mathematica 8 Documentation 
+http://reference.wolfram.com/mathematica/guide/RulesAndPatterns.html
+
+
+
+
+
+SnoPy - string patterns
+http://snopy.sourceforge.net/user-guide.html
+Arb - 
+Bal - parenthesis balanced stuff
+Fence - special flavor of patterns during which the matching process performs computation
+Rest
+pos
+rpos 
+concept of "state"
+
+recursive patterns with the + variable
+
+
+Any - !
+NotAny
+Len
+span
+arbno - *
+
+alternation / concatenation
+Griswold, R. E. , Poage J. F. , Polonsky I. P. The SNOBOL4 programming languge. Englewood Cliffs, New Jersey: Prentice-Hall, i
+
+
+
+
+
+Haskell - list patterns (with _ as _!), named patterns as @.  primarily as arguments to functions, no trees, no sequences, inferior to even Snobol
+
+http://www.haskell.org/tutorial/patterns.html
+
+
+
+
+
+
+
+
+
+
+
+paip - 
+
+Features:
+o User defined predicates on expressions by ?is
+o ?if - match if Lisp predicate succeeds
+o Replacements can happen arbitrarily deep in a tree (via sublis)
+o Variables are sticky.
+o Pattern variables can occur at any level -- the tree structure is matched.
+o Rewrites are template-to-template form.
+
+Drawbacks
+o Sequences cannot be replaced freestanding. (They incur an extra layer of parens.)
+o Matching a free-standing sequence multiple times is not straightforward. 
+o Functions on the bound values cannot be executed during replacement.
+o All variables are sticky (which clutters the syntax).
+o Patterns (other than one level with ?and, ?or, and ?not) are not composable! 
+o No vertical paths, permutations, or freestanding (unbracketed) sequence operators.
+
+

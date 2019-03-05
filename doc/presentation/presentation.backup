@@ -1,0 +1,348 @@
+\documentclass[8pt]{beamer}
+\usetheme{default}
+\usepackage{relsize}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{color}
+%\usepackage{cite}
+\usepackage{pst-node,pst-tree}
+\usepackage{pst-qtree}
+\psset{levelsep=2.5em,treesep=0pt,treefit=tight}
+
+% motivation & overview     2
+%   utiltity of template to template approach
+%   written in Lisp, available at website
+% pattern matching   10
+%   regular operators        2
+%   permutation and sequence 2
+%   vertical path and point of attachment 4
+%   bounded iteration 1.5
+%   constraints   0.5 
+% rewriting  5
+%   rule application order    1
+%   "nested" transductions    2
+%   functions in templates    2
+% applications  10
+%   parse refinement                3
+%     deleting empty constituents
+%     particularization of PP's
+%     coreferent determination
+%   working with logical forms       7
+%     logical interpretation         2
+%     skolemization                  2 
+%     predicate disambiguation       3
+% acknowledgements
+%   dan 
+%   len
+%   ONR & NSF grants
+
+% motivation         2
+% pattern matching   10
+% rewriting          5
+% applications       10
+
+
+
+\begin{document}
+
+\begin{frame}{TTT - Tree To Tree Transduction}
+  \begin {center}
+    T$^3$ -  the Tree To Tree Transduction language\\
+    ATANLP Workshop / EACL2012 
+    \begin{tabular}[h]{cc}
+    Adam Purtee & Lenhart Schubert \\
+    University of Rochester  &   University of Rochester \\
+    Department of Computer Science  &   Department of Computer Science\\
+    apurtee@cs.rochester.edu & schubert@cs.rochester.edu\\
+    \end{tabular}\\
+    April 24th, 2011
+  \end{center}
+\end{frame}
+
+\begin {frame} {Motivation}
+  Pattern-driven transformations of trees are fundamental tools in AI. 
+  They facilitate many symbol manipulation tasks, such as:
+  \begin{itemize}
+  \item operations on parse trees 
+  \item operations logical forms
+  \item inference 
+  \item dialogue 
+  \item translation
+  \end{itemize}
+  
+  The TTT system allows concise and transparent specification of rules for such tasks as:
+  \begin{itemize}
+  \item parse tree refinement and correction
+  \item predicate disambiguation
+  \item logical form refinement
+  \item inference
+  \item verbalization of logical forms into English
+  \end{itemize}
+\end{frame}
+
+       
+\begin{frame}
+  \frametitle{Overview}
+  TTT is implemented in Lisp. 
+
+  The system has two major components:  pattern matching and rewriting. 
+
+  The pattern matching subsystem can be invoked independently of the rewriting system.
+
+  A pattern may match a tree at any of its nodes (root, internal, or leaf). 
+  The individual variables of a pattern may bind to contiguous sequences of siblings in a tree. 
+
+  The collection of variables in a single pattern may bind to arbitrary subsets of nodes in a tree. 
+  
+  When a pattern contains multiple instances of a variable, that variable may be declared sticky.  
+  Each instance of a sticky variable must be bound to a tree-equal tree or sequence for the pattern test to succeed. 
+
+    One may specify constraints on allowable bindings to variables (through supplimentary predicate functions over possible bindings). 
+    
+    Patterns are recursively constructed from literal tree structure and pattern operators. 
+    
+    T$^3$ currently supports ten pattern operators: !,?,+,*,$<>$,\{\},\^{}n,\^{}@,\^{}*, and $\backslash$. 
+    
+    The core matching functions are:\\
+    \begin{itemize}
+    \item (match pattern tree \&optional bindings constraints)
+    \item (deep-match pattern tree \&optional bindings constraints)
+    \end{itemize}
+
+    match tests the pattern against the root of the tree, returning non-nil bindings if successful.  
+
+    deep-match calls match on every node of the tree, top-down, left-to-right, returning the bindings from the first sucessful match.  
+
+
+    
+    The atom t is used to represent match success when no variables were bound during the match. 
+    The atom nil is used to indicate pattern match impossibility. 
+
+\end{frame}
+
+\begin{frame}{Transductions}
+  A transduction is a transformation of one tree into another. 
+  The bindings created as a result of a successful pattern match may be used to construct new trees. 
+  The resulting tree can be radically different (such as involving changes to the root) or simply be the result of modifications to a subtree of the original tree. \\
+  Transductions are specified with the $\backslash$ operator. 
+    
+  A given transduction may apply to a tree at the locations which are matched by its enclosing pattern.  
+
+  The relevant functions are:\\
+  \begin{itemize}
+  \item (transduce rule tree \&optional deep)
+  \item (apply-rule rule tree)
+  \item (apply-rules ruleset tree)
+  \end{itemize}
+  
+  transduce applies a rule to the root of a tree at most once, when the keyword deep is non-nil, the tree is searched for possible points of application with deep-match.    
+  apply-rule  - applies a single rule to a tree until convergence 
+  apply-rules - iterates once through the transduction set, applying each transduction repatedly until convergence.  
+\end{frame}    
+
+
+
+\begin{frame}{Pattern Matching in T$^3$}
+  \begin{itemize}
+  \item patterns are constructed from operators such as permutation, iteration, and tree traversal 
+  \item pattern operators may specify variables to which the matching subtrees are bound
+  \item arbitrary predicates are allowed on tree structure (e.g. balanced? pp? nn-human?)
+  \item easy to add new predicates and pattern operators
+  \item arbitrary (as long as they're computable) constraints on bindings are supported
+  \item bindings may be ``sticky'' or ``loose''
+  \item patterns are composable
+  \item matching may be deep (search for sequence of siblings) or shallow (only test the root)
+  \item any tree structure may be specified (not only those with atomic left-most children, as in tgrep)
+  \end{itemize}
+\end{frame}
+      
+\begin{frame}{Pattern Operators}
+  % expand a bit on these
+  % show some simple patterns which exemplify that we use list structure to represent patterns
+  % mention negation
+  Patterns are composed of literal tree structure and operators.   There are ten distinct operators in T$^4$:\\
+  \begin{itemize}
+  \item !   - exactly one 
+  \item ?   - zero or one
+  \item +   - one or more 
+  \item *   - zero or more
+  \item $<>$  - ordered sequence
+  \item \{\}  - permuted sequence
+  \item \^{}n - depth-n children
+  \item \^{}* - descendant 
+  \item \^{}@ - vertical path
+  \item $\backslash$ - local transduction
+  \end{itemize}
+  Each of these operators may take arguments.    The first four may also appear without arguments (although, this requires a preceding underscore.)
+  Additionally, one may specify iterative constraints and additional binding information. 
+\end{frame}
+
+\begin{frame}{Predicates}
+  Note: patterns (tempaltes) also function as boolean predicates over trees; they may make use of additional resources, such as wordnet, verbnet, or knext. 
+  
+\end{frame}
+\begin{frame}{Example Patterns}
+  General examples:\\
+  \begin{itemize}
+  \item (! (+ A) (+ B)) \\-   matches a non-empty sequence of As or a non-empty sequence of B's, \\but not a sequence containing both
+  \item (* ($<>$ A A))  -   matches a sequence of an even number of A's
+  \item (B (* ($<>$ B B)))  -  matches a sequence of an odd number of B's
+  \item ((\{\} A B C))  \\-   matches (A B C) (A C B) (B A C) (B C A) (C A B) and (C B A) and nothing else
+  \item (($<>$ A B C))   -  matches (A B C) and nothing else
+  \item (\^{}* X)  -   matches any tree with descendant X
+  \item (\^{}@ (+  (@ \_*)) X)  -  matches a tree with leftmost leaf ``X''
+  \end{itemize}
+
+  Particular Examples of Matching:
+    \begin{tabular} {l c r}
+    Pattern  & Tree &   Bindings\\
+    \_!   & (A B C) & (\_! (A B C)\\
+    (A \_! C)     &        (A B C)   &              (\_! B)\\
+    (\_* F)       &        (A B (C D E) F)   &      (\_*  A B (C D E))\\
+    (A B \_? F)   &        (A B (C D E) F)   &      (\_? (C D E))\\
+    (A B \_? (C D E) F)  & (A B (C D E) F)   &      (\_? )\\
+    (\^{}@ \_! (C \_*) E)   & (A B (C D E) F)   &   (\^{}@ (A B (C D E) F))  (\_* D E)\\
+    (A B ($<>$ (C D E)) F)  & (A B (C D E) F)   &   ($<>$ (C D E))\\
+    (A B ($<>$ C D E) F)    & (A B (C D E) F)  &   fail\\
+  \end{tabular}
+  Example of All-Match
+  \begin{tabular} {l c r}
+    Pattern & Tree & All Bindings\\
+    \_!  & (A B C) & ((\_! (A B C)) (\_! A) (\_! B) (\_! C))\\
+    \_+ & (A B) & ((\_+ (A B)) (\_+ A) (\_+ B) (\_+ A B))\\
+  \end{tabular}
+
+\end{frame}
+
+\begin{frame}{Transductions in T$^3$}
+ The $\backslash$ operator may appear anywhere within a pattern. When it appears in a place other than the root, it is referred to as a local transduction. The utility of local transduction is that the transduction can be specified to take place somewhere within a matching tree, instead of replacing the entire matching tree (or repeating it in the rhs template).   This can be employed to set a required context for a transduction to take place. 
+
+ In general, transductions rules do not commute.
+\end{frame}
+
+
+\begin{frame}{Example Transductions}
+  Source tree:  (A B (X Y ( Z X K)) T)   \\
+
+  \begin{tabular} {l r}
+    Transduction  & Result \\
+    (/ X Y)       &         (A B (Y Y (Z Y K)) T)\\
+    (/ (A B \_*) (A \_*))  &  (A (X Y (Z X K)) T)\\
+    (\_! \_*) =$>$ (\_* \_!)  &   (T A B (X Y (Z X K)))  ... (A B (X Y (Z X K)) T) ... \\
+    (\_+ (Z \_! K)) =$>$ (\_! \_+) &  (A B (X X Y) T) \\
+  \end{tabular}
+\end{frame}
+
+\begin{frame}
+  \frametitle{More Example Transductions}
+  Rel-word specification:\\
+  The transduction: \\
+  ($\backslash$ (\^{}@ (S-REL \_+) (* ((! ~ S SBAR SBARQ SQ) \_+1))  ((!1 WP WP\$ WRB WDT) \_!) )
+                (\^{}@ (S-REL \_+) * ((attach-rel! !1) \_!))) \\
+  
+  Applied to the tree:   \\
+  (S-REL (SBAR X (WRB Y)))\\
+  Results in the tree:   \\
+  (S-REL (SBAR X (REL-WB Y))) \\
+
+  
+  Some preprocessing examples:\\
+  \begin{itemize}
+  \item   To delete empty constituents:\\
+    (/ (\_*1 () \_*2) (\_*1 \_*2)))\\     
+    example:  (A B () C)  ->   (A B C)\\
+  \item To specify PPs:
+    (PP \_* (IN \_!) \_*1) =$>$ ((join-with-dash! PP \_!) \_* (IN \_!) \_*1))\\
+    
+    examples:
+    \begin{itemize} 
+    \item (PP (IN TO) (NP (DETP THE) (NN STORE))) ->  (PP-TO (IN TO) (NP (DETP THE) (NN STORE)))\\
+    \item (PP (IN FROM) (NP (DETP THE) (NN STORE))) -> (PP-FROM (IN FROM) (NP (DETP THE) (NN STORE)))\\
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Nondeterminism}
+  Nondeterminism arises in two ways:
+  \begin{itemize}
+  \item rule selection - transductions are not commutative
+  \item bindings  - a template may match a tree in multiple ways  [Ex: (\_* \_*1) =$>$ (\_*) ] or in multiple places [Ex: \_! matches every node of any tree, including the root.]
+  \end{itemize}
+  Therefore some trees may have many reduced forms, and even more ``reachable'' forms. 
+  
+  One can imagine a few ways to tackle this: 
+  \begin{itemize}
+  \item Exhaustive exploration - Given a tree and a set of transductions, attempt to compute all reduced forms.   [note: it is possible for this to be an infinite set.]
+  \item What we actually do - Given a tree and a list of transductions, for each transduction (in order), apply the transduction in top-down fashion in each feasible location (matching lhs), always using the first binding which results from a ``left most'' search.
+  \end{itemize}
+  The first method has the unfortunate effect of transducing one tree into many (bad for parse repair, probably bad for other applications as well).
+  The latter method is particularly reasonable when your set of transductions is not prone to interaction or multiple overlapping bindings.
+
+% move this to somewhere later
+% *Note that some variables may be logically bound multiple times, such as when they appear inside the repitition operators *  or +.   When such a  variable also appears in a rhs template the ``deepest'' binding is used.  Internally, all the bindings are retained during the match, so if demand arises it would be straightforward to make other bindings available. 
+
+% move to later (at description of non-determinism?)    
+% What portion of the tree '(X) does the pattern '(X) match?  - the root
+% The pattern \_* matches the tree '(X Y Z) at the root and each of the children X, Y, and Z, and each contiguous subsequence: X Y, Y Z, X Y Z
+% The pattern (\_*) only matches the root of the tree. 
+% The complete syntax of the patterns of the language can be found in the documentation.     
+\end{frame}
+
+
+\begin{frame}
+  \frametitle{Related Things}
+  \begin{itemize}
+  \item TGrep2 / Tsurgeon\\ tgrep functions
+    \begin{itemize}
+    \item dominance
+    \item last child
+    \item leftmost/rightmost descendant
+    \item precedes
+    \item sisterhood
+    \item negation
+    \item alternation
+    \end{itemize}   
+    T$^3$ has all these.... and isn't limited to parse trees (first child may be non-atomic)
+  \item MBOTs
+  \item STSG
+  \item Wikipedia page on abstract rewriting systems
+  \item How does it extend these?  (really more a question for me to answer so that I am aware of the world...)
+    \begin{itemize}
+    \item CL-match
+    \item araneida
+    \item paip
+    \end{itemize}
+  \end{itemize}
+
+  Applications:
+  \begin{itemize}
+  \item parse repair (this talk)
+  \item preprocessing
+  \item treebank analysis (lexical dependency statistics)
+  \item semantic parsing (direct conversion of syntactic parses to logical forms)
+  \item machine translation? 
+  \end{itemize}
+\end{frame}
+  
+\begin{frame}
+  \frametitle{Next things} 
+  \begin{itemize}
+  \item write the exhaustive search
+  \item manually write additional repair rules
+  \item find parameterizations of rules which enable learning of new rules
+  \item conduct larger scale tests of parse repairs: use petrov, charniak-johnson (reranking), and charniak (verify), eval on wsj
+  \item simulate other tree transducers/learning procedures
+  \item tune via hand-optimizations and possible self-tuning
+  \item convert to shell-level command (callable without directly messing with lisp) -- enables file-system level parallelism
+  \item investigate parallelizing the actual code
+  \item add logical connectives on predicates
+  \item make efficient by replacing these naive recursive algorithms with dynamic programming (see email apr 26)
+  \item implement match-all (return all sets of bindings which match... can this be infinite? )
+  \item implement construct-all
+  \item More work needs to be done generalizing and particularizing the existing rules.
+  \end{itemize}
+\end{frame}
+
+\end{document}
+
+

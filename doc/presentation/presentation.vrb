@@ -1,0 +1,27 @@
+\frametitle {Logical Interpretation}
+The following transductions directly map some simple parse trees to logical forms.
+\begin{multicols}{2}
+\begin{verbatim}
+(/ (JJ _!) (make-adj! _!))
+(/ (NN _!) (make-noun! _!))
+(/ (VBD _!) (make-verb! _!))
+(/ (NP _!) _!)
+\end{verbatim}
+\begin{verbatim}
+(/ (_*.a (NNP _!.1) (NNP _!.2) _*.b)
+   (_*.a (NNP _!.1 _!.2) _*.b))
+(/ (NNP _+) (make-name! (_+)))
+(/ (S (NP (DT the) _!) (VP _+)) (the x (x _!) (x _+))
+\end{verbatim}
+\end{multicols}
+For example, the input parse tree:
+\begin{verbatim}
+(S (NP (DT the) (NN dog))
+   (VP (VBD bit)
+       (NP (NNP John) (NNP Doe))))
+\end{verbatim}
+
+yields the logical form,
+\begin{verbatim}
+(the x (x dog.n) (x bit.v John\_Doe.name))
+\end{verbatim}

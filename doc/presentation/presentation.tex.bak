@@ -1,0 +1,435 @@
+\documentclass[8pt]{beamer}
+\usetheme{Antibes}
+\usepackage{multicol}
+\usepackage{relsize}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{color}
+%\usepackage{cite}
+\usepackage{pst-node,pst-tree}
+\usepackage{pst-qtree}
+\psset{levelsep=2.5em,treesep=0pt,treefit=tight}
+
+
+
+\title[TTT]{TTT - the Tree to Tree Transduction language}
+\author{Adam Purtee \and Lenhart Schubert}
+\date{April 24, 2011}
+\institute[University of Rochester]{
+  Department of Computer Science\\
+  University of Rochester\\
+  Rochester, NY, USA\\
+  \{apurtee,schubert\}@cs.rochester.edu
+}
+%institute[University of Rochester]{Deparment of Computer Science}
+\begin{document}
+\maketitle
+\section{Introduction}
+\subsection{Motivation}
+\begin {frame} {Motivation}
+\begin{itemize}
+\item Pattern matching and pattern-driven transformations of list-structured symbolic expressions or trees are fundamental tools in AI. \\
+
+\item Existing systems, such as Tiburon, Tsurgeon, and XSLT and models are efficient, but restricted in the types of transformations they allow.  They are also not as immediately useful to our language processing tasks as we would like.
+
+\item The language TTT does not have any such restrictions, as it is intended as a general programming aid, with a concise syntax for potentially radical transformations.
+\end{itemize}
+\end{frame}
+\subsection{Overview}
+\begin{frame}{Overview}
+TTT is composed of two main components, one for matching tree patterns and one for transformations of trees, and allows concise and transparent specification of transformations supporting such tasks as:
+  \begin{itemize}
+  \item parse tree refinement and correction
+  \item predicate disambiguation
+  \item logical form refinement
+  \item inference
+  \item verbalization of logical forms into English
+  \end{itemize}
+This presentation will cover the matcher, then the transducer, then a set of language processing applications. 
+\end{frame}
+
+\section{Pattern Matching}
+\subsection{Features}
+\begin{frame}
+  \frametitle{Pattern Matching Features}
+  \begin{itemize}
+  \item Patterns are recurive.
+  \item Patterns are composed of literal tree structure and operators. 
+  \item any tree structure may be specified (not only those with atomic left-most children)
+  \item Pattern variables may bind to sequences of nodes.
+  \item sticky bindings
+  \item constraints on allowable bindings
+  \item iterative constraints
+  \item arbitary predicates  (e.g. balanced? pp? nn-human?)
+  \item matching may be deep (search for sequence of siblings) or shallow (only test the root)     \item Ten pattern operators: !,?,+,*,$<>$,\{\},\^{}n,\^{}@,\^{}*, and \texttt{/}. 
+  \end{itemize}
+\end{frame}
+
+\subsection{Operators}
+\begin{frame}{Pattern Operators}
+  $T^3$ includes the ten operators:
+  \begin{itemize}
+  \item !   - exactly one 
+  \item ?   - zero or one
+  \item +   - one or more 
+  \item *   - zero or more
+  \item $<>$  - ordered sequence
+  \item \{\}  - permuted sequence
+  \item \^{}n - depth-n children
+  \item \^{}* - descendant 
+  \item \^{}@ - vertical path
+  \item \texttt{/} - local transduction
+  \end{itemize}
+\end{frame}
+
+\subsection{Examples}
+\begin{frame}{Example Patterns}
+  \begin{itemize}
+  \item \texttt{(!~(+ A) (+ B))}\\Matches a non-empty sequence of \texttt{A}'s or a non-empty sequence of \texttt{B}'s, but not a sequence containing both.
+  \item \texttt{(* ($<>$ A A))}\\Matches an even number of \texttt{A}'s.
+  \item \texttt{(B (* ($<>$ B B)))}\\Matches an odd number of \texttt{B}'s.
+  \item \texttt{((\{\} A B C))}\\Matches \texttt{(A B C)}, \texttt{(A C B)}, \texttt{(B A C)}, \texttt{(B C A)}, \texttt{(C A B)} and \texttt{(C B A)} and nothing else.
+  \item \texttt{(($<>$ A B C))}\\Matches \texttt{(A B C)} and nothing else.
+  \item \texttt{(\^{}* X)}\\Matches any tree that has descendant \texttt{X}.
+  \item \texttt{(\^{}@ (+ (@ \_*)) X)}\\Matches any tree with leftmost leaf \texttt{X}.
+  \end{itemize}
+
+\end{frame}
+\begin{frame}{Example Patterns}
+    \begin{tabular} {l|c|r}
+    Pattern  & Tree &   Bindings\\
+    \hline
+    \_!   & (A B C) & (\_! (A B C)\\
+    (A \_! C)     &        (A B C)   &              (\_! B)\\
+    (\_* F)       &        (A B (C D E) F)   &      (\_*  A B (C D E))\\
+    (A B \_? F)   &        (A B (C D E) F)   &      (\_? (C D E))\\
+    (A B \_? (C D E) F)  & (A B (C D E) F)   &      (\_?)\\
+    (\^{}@ \_! (C \_*) E)   & (A B (C D E) F)   &   (\^{}@ (A B (C D E) F))  (\_* D E)\\
+    (A B ($<>$ (C D E)) F)  & (A B (C D E) F)   &   ($<>$ (C D E))\\
+    (A B ($<>$ C D E) F)    & (A B (C D E) F)  &   fail\\
+  \end{tabular}
+\end{frame}
+
+\section{Transductions}
+\subsection{Features and Operator}
+\begin{frame}
+  \frametitle{Features and Operator}
+  Transduction features:
+  \begin{itemize}
+  \item The bindings created as a result of a successful pattern match may be used to construct new trees from a template.
+  \item The resulting tree can be radically different (such as involving changes to the root) or simply be the result of modifications to a subtree of the original tree. 
+  \item One shot or until convergence. 
+  \item Local transductions allow large contexts.
+  \item constructive functions with bound variables as arguments 
+  \end{itemize}
+
+  Transductions are performed via the \texttt{/} operator:
+  \begin{itemize}
+  \item  The \texttt{/} operator may appear anywhere within a pattern. \\
+  \item Currently, at most one \texttt{/} operator per rule is supported. 
+  \item Can be at top level, e.g: \texttt{(/} \emph{source} \emph{target}\texttt{)}
+  \item Or nested, e.g: \texttt{(\^{}@ \_* (/} \emph{source} \emph{target}\texttt{))}
+  \end{itemize}
+\end{frame}
+
+
+\subsection{Examples}
+\begin{frame}{Brief Examples}
+  \begin {itemize}
+  \item  \texttt{(/ X Y)}\\Replaces the symbol \texttt{X} with the symbol \texttt{Y}.
+  \item  \texttt{(/ (!~X Y Z) (A))}\\Replaces any \texttt{X}, \texttt{Y}, or \texttt{Z} with \texttt{A}.
+  \item  \texttt{(/ (!~X) (!~!))}\\Duplicates an \texttt{X}.
+  \item  \texttt{(/ (X \_* Y) (X Y))}\\Remove all subtrees between \texttt{X} and \texttt{Y}.
+  \item  \texttt{(/ (\_!~\_* \_!1) (\_!1 \_* \_!))}\\Swaps the subtrees on the boundaries.
+  \item  \texttt{(/ (\_* () \_*1) (\_* \_*1))}\\ Deletes empty brackets (which sometimes occur in the Brown corpus)
+  \end {itemize}
+\end{frame}
+\begin{frame}{Brief Examples}
+  Source tree:  (A B (X Y ( Z X K)) T)   \\
+  \begin{tabular} {l| r}
+    Transduction  & Result \\
+    \hline
+    (/ X Y)       &         (A B (Y Y (Z Y K)) T)\\
+    (/ (A B \_*) (A \_*))  &  (A (X Y (Z X K)) T)\\
+    (/ (\_! \_*) (\_* \_!))  &   (T A B (X Y (Z X K)))  ... (A B (X Y (Z X K)) T) ... \\
+    (/ (\_+ (Z \_! K)) (\_! \_+)) &  (A B (X X Y) T) \\
+  \end{tabular}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Brief Examples}
+Repair of faulty classification of relative pronouns as wh-question pronouns:
+Transduction:\\
+\begin{verbatim}
+(^@ (* ((! S SBAR) _+))
+    (/ (WH _!) (REL-WH (WH _!))))
+\end{verbatim}
+Source tree:  \\
+\texttt{(S (SBAR (WH X) B) A)}\\
+
+Result:\\
+\texttt{(S (SBAR (REL-WH (WH X)) B) A)}.
+\end{frame}
+
+\subsection{Theoretical Properties}
+\begin{frame}{Time Complexity} 
+Matching complexity depends on the operators involved, for example: 
+\begin{itemize}
+\item \texttt{(!~((* A) B) ((* A) C) ((* A) D) ((* A) E) ((* A)))}  applied to the expression \texttt{(A A A A A)} rescans the latter 5 times, implying quadratic complexity.  
+\item  With the addition of the permutation operator \texttt{\{\}}, we can force all permutations of certain patterns to be tried in an unsuccessful match (e.g., \texttt{((\{\} (!~A B C) (!~A B C) (!~A B C)))} applied to \texttt{(C B E)}), leading to exponential complexity. 
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Turing Equivalence}
+$T^3$ subsumes regular tree expressions:
+\begin{itemize}
+\item  alternation can be expressed with \texttt{!} 
+\item (vertical) iteration with \texttt{\^{}@} and \texttt{*}. 
+\item The example expression from \emph{TATA} can be specified as \texttt{ (\^{}@ (* (cons 0 @)) nil)}, which matches Lisp expressions corresponding to lists of zero or more zeros. 
+\end{itemize} 
+
+
+$T^3$ is Turing equivalent:\\
+\begin{itemize} 
+\item via repeated application of a set of rules to a tree (even with only the 4 underscore operators)
+\item pattern predicates and function application in the right-hand sides of rules are unrestricted
+\end{itemize}
+\end{frame}
+\begin{frame}{Nondeterminism}
+  Nondeterminism arises in two ways:
+  \begin{itemize}
+  \item Rule application order - transductions are not in general commutative.
+  \item Bindings  - a pattern may have many sets of consistent bindings to a tree (e.g., pattern \texttt{(\_* \_*1)} can be bound to the tree \texttt{(X Y Z)} in four distinct ways). 
+  \item Subtree search order - a single transduction may be applicable to a tree in multiple locations (e.g., \texttt{(/ \_!~X)} could replace any node of a tree, including the root, with a single symbol).
+  \end{itemize}
+  Therefore, some trees may have many reduced forms, and even more reachable forms. \\
+  
+  Our current approach is to apply each rule to subtrees in top-down, left-to-right (pre-order), until convergence. \\
+
+  Exhausive exploration (via infinite streams) will be added in the future. 
+\end{frame}
+
+\section{Selected Applications}
+\subsection{Parse Tree Refinement}
+\begin{frame}[fragile]
+  \frametitle{Parse Tree Refinement}
+Distinguishig between past and passive participles:
+%To distinguish between past and passive participles, we want to search for the verb {\it have}, and change the participle token correspondingly, as discussed earlier.  The next two transductions are equivalent -- the first is global and the second is an example of a local or on-the-fly transduction. For simplicity we consider only the {\it has} form of {\it have}.  Observe the more concise form, and simpler variable specifications of the second transduction.
+\begin{verbatim}
+(/ (VP _* (VBZ HAS) _*1 (VBN _!) _*2)
+   (VP _* (VBZ HAS) _*1 (VBEN _!) _*2))
+\end{verbatim}
+\emph{Using a local transduction:}
+\begin{verbatim}
+(VP _* (VBZ HAS) _* ((/ VBN VBEN) _!) _*)
+\end{verbatim}
+
+Distinguishing termporal and non-temporal nominals:
+\begin{verbatim}
+(/ (NP _* nn-temporal?)
+   (NP-TIME \_* nn-temporal?))
+\end{verbatim}
+\emph{Same rule, but as a local transduction:}
+\begin{verbatim}
+((/ NP NP-TIME) _* nn-temporal?)
+\end{verbatim}
+
+
+Assimilation of verb particles into single constituents:
+\begin{verbatim}
+(/ (VP (VB _!1)
+       ({} (PRT (RP _!2)) (NP _*1)))
+   (VP (VB _!1 _!2)  (NP _*1)))
+\end{verbatim}
+
+
+Particularization of prepositions:
+\begin{verbatim}
+(/ (PP (IN _!) _*1)
+   ((join-with-dash! PP _!) 
+    (IN _!) _*1))
+\end{verbatim}
+\end{frame}
+
+\subsection{Working with Logical Forms}
+\begin{frame}[fragile]
+  \frametitle{Coreferent Determination}
+This transduction populates lists of candidate coreferents:
+\begin{verbatim}
+(_* ((NP _* SEM-INDEX _!. _*) _+) _* 
+    (^* ((NP _* CANDIDATE-COREF (/ _!(adjoin! _!. _!)) _*) (PRON _!))) _*)
+\end{verbatim}
+\begin{multicols}{2}
+Source tree:
+\begin{verbatim}
+(S ((NP SEM-INDEX 1) (NAME John))
+   (VP (V shows) 
+       ((NP SEM-INDEX 2) (NAME Lillian))
+       ((NP SEM-INDEX 3) (DET the)
+        (N (N snowman)
+           (R (RELPRON that)
+              ((S GAP NP)
+               ((NP SEM-INDEX 4 
+                 CANDIDATE-COREF ())
+                (PRON he))
+               ((VP GAP NP) (V built)
+                ((NP SEM-INDEX 4) 
+                 (PRON *trace*)))))))))
+\end{verbatim} 
+
+
+Output tree:
+\begin{verbatim}
+(S ((NP SEM-INDEX 1) (NAME John))
+   (VP (V shows) 
+       ((NP SEM-INDEX 2) (NAME Lillian))
+       ((NP SEM-INDEX 3) (DET the)
+        (N (N snowman)
+           (R (RELPRON that)
+              ((S GAP NP)
+               ((NP SEM-INDEX 4 
+                 CANDIDATE-COREF (1))
+                (PRON he))
+               ((VP GAP NP) (V built)
+                ((NP SEM-INDEX 4) 
+                 (PRON *trace*)))))))))
+\end{verbatim}
+\end{multicols}
+\end{frame}
+
+% where \texttt{x} is a variable, \texttt{R} is a restrictor formula and \texttt{S} is the nuclear scope,
+\begin{frame}[fragile]
+  \frametitle{Skolemization}
+Skolemization of an existential formula of type \texttt{(some x R S)}, is performed via the transduction:\\
+\begin{verbatim}
+(/ (some _! _!1 _!2)
+   (subst-new! _! (_!1 and.cc _!2)))
+\end{verbatim}
+
+
+For example, 
+\begin{verbatim}
+(some x (x politician.n) (x honest.a))
+\end{verbatim}
+becomes
+\begin{verbatim}
+((C1.skol politician.n) and.cc (C1.skol honest.a))
+\end{verbatim}
+\end{frame}
+
+%The following rules are applicable to patterns of predication such as {\small\tt ((det dog.n have.v (det tail.n))}, {\small\tt ((det bird.n have.v (det nest.n))}, and {\small\tt ((det man.n) have.v (det accident.n))}. The rules simultaneously introduce plausible patterns of quantification and plausible disambiguations of the various senses of {\small\tt have.v} (e.g., have as part, possess, eat, experience):
+\begin{frame}[fragile]
+  \frametitle{Predicate Disambiguation}
+The following rules disambiguate among various senses of have (e.g. have as part, as posession, as experience): 
+\begin{multicols}{2}
+\begin{verbatim}
+   (/ ((det (! animal?)) have.v 
+       (det (!1 animal-part?)))
+      (all-or-most x (x !)
+       (some e ((pair x e) enduring)
+        (some y (y !1)
+         ((x have-as-part.v y) ** e)))))
+
+   (/ ((det (! agent?)) have.v 
+       (det (!1 possession?)))
+      (many x (x !)
+       (some e
+        (some y (y !1)
+         (x possess.v y) ** e))))
+\end{verbatim}
+\begin{verbatim}
+   (/ ((det (! animal?)) have.v 
+       (det (!1 food?)))
+      (many x (x !)
+       (occasional e
+        (some y (y !1)
+         (x eat.v y) ** e))))
+
+   (/ ((det (! person?)) have.v 
+       (det (!1 event?)))
+      (many x (x !)
+       (occasional e
+        (some y (y !1)
+         ((x experience.v y) ** e)))))
+\end{verbatim}
+\end{multicols}
+Thus, for example, \texttt{((det dog.n have.v (det tail.n))} is mapped to:
+\begin{verbatim}
+  (all-or-most x (x dog.n
+   (some e ((pair x e) enduring)
+    (some y (y tail.n)
+     ((x have-as-part.v y) ** e)))))
+\end{verbatim}
+\end{frame}
+
+%The rules, applied as often as possible to a parse tree, replace all syntactic constructs, recognizable from (Treebank-style) phrase headers like {\small\tt (JJ ...)}, {\small\tt (NP ...)}, {\small\tt (VP ...)}, {\small\tt (S ...)}, etc., by corresponding semantic constructs.  For example, ``The dog bit John Doe'', parsed as 
+%\texttt{(/ (JJ \_!) (make-adj!~\_!))}\\
+%\texttt{(/ (NN \_!) (make-noun!~\_!))}\\
+%\texttt{(/ (VBD \_!) (make-verb!~\_!))}\\
+%\texttt{(/ (NP \_!) \_!)}\\
+%\texttt{(/ (\_*.a (NNP \_!.1) (NNP \_!.2) \_*.b)}\\
+%\hspace*{2em}\texttt{(\_*.a (NNP \_!.1 \_!.2) \_*.b))}\\
+%\texttt{(/ (NNP \_+) (make-name!~(\_+)))}\\
+%\texttt{(/ (S (NP (DT the) \_!) (VP \_+)) (the x (x \_!) (x \_+))}
+\begin{frame}[fragile]
+  \frametitle{Logical Interpretation}
+The following transductions directly map some simple parse trees to logical forms. 
+\begin{multicols}{2}
+\begin{verbatim}
+(/ (JJ _!) (make-adj! _!))
+(/ (NN _!) (make-noun! _!))
+(/ (VBD _!) (make-verb! _!))
+(/ (NP _!) _!)
+\end{verbatim}
+\begin{verbatim}
+(/ (_*.a (NNP _!.1) (NNP _!.2) _*.b)
+   (_*.a (NNP _!.1 _!.2) _*.b))
+(/ (NNP _+) (make-name! (_+)))
+(/ (S (NP (DT the) _!) (VP _+)) (the x (x _!) (x _+))
+\end{verbatim}
+\end{multicols}
+For example, the input parse tree:
+\begin{verbatim}
+(S (NP (DT the) (NN dog)) 
+   (VP (VBD bit) 
+       (NP (NNP John) (NNP Doe))))
+\end{verbatim}
+
+yields the logical form, 
+\begin{verbatim}
+(the x (x dog.n) (x bit.v John\_Doe.name))
+\end{verbatim}
+\end{frame}
+%Type-extensions such as `\texttt{.a}', `\texttt{.n}', and `\texttt{.v}' indicate adjectival, nominal, and verbal predicates, and the extension `\texttt{.name}' indicates an individual constant (name); these are added by the functions \texttt{make-adj!}, \texttt{make-noun!}, and so on. The fourth rule below combines two successive proper nouns (NNPs) into one. We omit event variables, tense and other refinements.
+
+
+
+\subsection{Outtro}
+\begin{frame}{Conclusions and Future Work}
+The TTT language 
+\begin{itemize}
+\item is well suited to the applications for which it is intended to be used,
+\item is already proving useful in current syntactic/semantic applications, 
+\item and provides a very concise, transparent way of specifying transformations 
+\end{itemize}
+
+Some remaining issues  and future work are:
+\begin{itemize}
+\item efficient accessto, and deployment of, rules that are locally relevant to a transduction; 
+\item and heuristics for executing matches and transductions more efficiently 
+\item investigate learning of parse repair, LF repair, and LF-to-English rules.
+\end{itemize}
+\end{frame}
+
+%(e.g., recognizing various cases where a complex rule cannot possibly match a
+%given tree, because the tree lacks some constituents called for by the
+%rule; or use of efficient methods for matching regular-expression subpatterns).
+
+\begin{frame}{Acknowledgments}
+The work was supported by ONR-STTR award N00014-11-10417, and NSF grants IIS-1016735,  NSF IIS-0916599, and NSF IIS-0910611.
+
+Thanks to Dan Gildea for his advice throughout the project. Also thanks to the anoymous reviewers for their helpful comments on the first sumbission of the paper. 
+\end{frame}
+\end{document}
+
+
