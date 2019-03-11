@@ -79,8 +79,8 @@
 	(format t "~20s~t ~t~20s ~t~20a ~t " (test-getpat test) (test-getexpr test) result))
     (if (or (and result (test-getbind test))
 	    (and (null result) (null (test-getbind test))))
-	(format t "PASS~%" result)
-	(format t "FAIL~%" result))))
+	(format t "PASS~t~a~%" result)
+	(format t "FAIL~t~a~%" result))))
 
 
 
@@ -95,10 +95,11 @@
 
 
 (defun run-simple-tests (&key (prompt) (mode 'all) nodals)
+  (declare (ignore nodals)) ;; GK: I don't know what this does, but there's no :nodals in run-tests
   (clear-tests)
   (load-tests-simple)
   (format t "individually testing match pass/fail for _!, _?, _+, _*, !, and ?:~%")
-  (run-tests :disp-counts 't :prompt prompt :mode mode :nodals nodals)
+  (run-tests :disp-counts 't :prompt prompt :mode mode)
 )
   
 
