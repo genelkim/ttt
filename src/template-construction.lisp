@@ -13,7 +13,7 @@
     (;; is template-expr a function?
      (and (consp template-expr)
 	  (symbolp (car template-expr))
-	  (fboundp (intern (car template-expr)))
+	  (fboundp (intern (symbol-name (car template-expr))))
 	  (equal "!" (subseq (symbol-name (car template-expr))
 			     (1- 
 			      (length 
@@ -21,7 +21,7 @@
      (list
      (funcall
       (if return-expr #'identity #'build-tree)
-      (apply (intern (car template-expr))
+      (apply (intern (symbol-name (car template-expr)))
 	     (reduce 
 	      #'append
 	      (mapcar 
