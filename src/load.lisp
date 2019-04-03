@@ -3,8 +3,8 @@
 (require 'asdf)
 
 ;; avoids saving compiled files in special local cache.
-(let f (and (setq f (fboundp (find-symbol "DISABLE-OUTPUT-TRANSLATIONS" 'asdf)))
-	    (funcall f)))
+(if (fboundp (find-symbol "DISABLE-OUTPUT-TRANSLATIONS" 'asdf))
+  (funcall (find-symbol "DISABLE-OUTPUT-TRANSLATIONS" 'asdf)))
 
 ;; from http://www.cliki.net/asdf
 ;;; If the fasl was stale, try to recompile and load (once). Since only SBCL
@@ -28,7 +28,7 @@
       asdf:*central-registry*)
 
 ;; compiler settings
-(proclaim '(optimize (speed 3) (safety 3) (space 0) (debug 3)))
+(proclaim '(optimize (speed 1) (safety 3) (space 0) (debug 3)))
 
 ;; Load TTT Choose between the following two lines depending on
 ;; whether you want the files compiled into FASLs or not:

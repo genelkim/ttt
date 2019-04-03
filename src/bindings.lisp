@@ -19,6 +19,7 @@
 	    (let ((newbinds (make-hash-table)))
 	      (maphash 
 	       (lambda (k v) 
+                 (declare (ignore v))
 		 (setf (gethash k newbinds) 
 		       (gethash k bindings)))
 	       bindings)
