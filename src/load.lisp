@@ -35,4 +35,3 @@
 (asdf:operate 'asdf:load-op 'ttt) ;; Compile and load as necessary
 ;(asdf:operate 'asdf:load-source-op 'ttt) ;; Doesn't compile
 
-
