@@ -48,9 +48,14 @@
     pred))
     
 
+;; TODO: use this function in 'pred-sym-p' of operators.lisp. will need to move
+;; function or reorder files since this file comes after operators.lisp
 (defun get-pred-fn (sym)
   "Return the function for the base predicate symbol."
-  (symbol-function (read-from-string (subseq (string sym) 0 (1+ (position #\? (string sym)))))))
+  (let ((str (string sym))
+        (pkg (symbol-package sym)))
+    (symbol-function
+      (intern (subseq str 0 (1+ (position #\? str))) pkg))))
 
 	 
 (defun mk-pred-ttt (pred-op patt-expr)

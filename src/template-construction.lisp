@@ -9,19 +9,24 @@
 (defun template-to-tree (template-expr bindings return-expr)
   "Build a new tree expression from template-expression and bindings. 
    When return-expr is nil, a tree object is returned instead."
+  (if (> *ttt-debug-level* 0)
+    (progn
+      (format t "In template-to-tree: ~s~%" template-expr)
+      (if (and (consp template-expr) (symbolp (car template-expr)))
+        (format t "~s~%" (intern (symbol-name (car template-expr)))))))
   (cond 
     (;; is template-expr a function?
      (and (consp template-expr)
-	  (symbolp (car template-expr))
-	  (fboundp (intern (symbol-name (car template-expr))))
-	  (equal "!" (subseq (symbol-name (car template-expr))
-			     (1- 
-			      (length 
-			       (symbol-name (car template-expr)))))))
+          (symbolp (car template-expr))
+          (fboundp (car template-expr))
+          (equal "!" (subseq (symbol-name (car template-expr))
+                             (1-
+                              (length
+                                (symbol-name (car template-expr)))))))
      (list
      (funcall
       (if return-expr #'identity #'build-tree)
-      (apply (intern (symbol-name (car template-expr)))
+      (apply (car template-expr)
 	     (reduce 
 	      #'append
 	      (mapcar 

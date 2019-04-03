@@ -150,9 +150,11 @@
 (defun pred-sym-p (sym) 
   "Check to see if the symbol is a predicate optionally followed by digits."
   (if (symbolp sym) 
-      (let* ((str (string sym)) 
+      (let* ((str (string sym))
+             (pkg (symbol-package sym))
 	     (pos (position #\? str))) 
 	(and pos 
-	     (fboundp (read-from-string (subseq str 0 (1+ pos))))
+	     (fboundp (intern (subseq str 0 (1+ pos)) pkg))
 	     (not (find t (mapcar (lambda (x) (not (digit-char-p x))) 
 				  (coerce (subseq str (1+ pos)) 'list))))))))
+
