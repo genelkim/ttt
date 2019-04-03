@@ -52,10 +52,11 @@
 ;; function or reorder files since this file comes after operators.lisp
 (defun get-pred-fn (sym)
   "Return the function for the base predicate symbol."
-  (let ((str (string sym))
-        (pkg (symbol-package sym)))
+  (let* ((str (string sym))
+         (pkg (symbol-package sym))
+         (qps (position #\? str)))
     (symbol-function
-      (intern (subseq str 0 (1+ (position #\? str))) pkg))))
+      (intern (subseq str 0 (if qps (1+ qps) nil)) pkg))))
 
 	 
 (defun mk-pred-ttt (pred-op patt-expr)

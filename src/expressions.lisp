@@ -25,7 +25,7 @@
       (if (listp expression)
 	  (let ((n (get-/n (car expression))) (m (get-/m (car expression))))
 	    (case (patt-expr-get-op expression)
-	      ('! 
+	      ((! +)
 	       (if (patt-expr-pos-args expression) 
 		   (if n 
 		       (* n (reduce 
@@ -38,20 +38,8 @@
 			(mapcar 
 			 #'patt-expr-min-width 
 			 (patt-expr-pos-args expression)))) 1))
-	      ('+ 
-	       (if (patt-expr-pos-args expression) 
-		   (if n 
-		       (* n 
-			  (reduce 
-			   #'min 
-			   (mapcar 
-			    #'patt-expr-min-width (patt-expr-pos-args expression)))) 
-		       (reduce 
-			#'min 
-			(mapcar 
-			 #'patt-expr-min-width (patt-expr-pos-args expression)))) 1))
-	      ('? 0)
-	      ('* 
+	      (? 0)
+	      (*
 	       (if (and n m) 
 		   (* n 
 		      (reduce 
@@ -59,25 +47,20 @@
 		       (mapcar 
 			#'patt-expr-min-width (patt-expr-pos-args expression)))) 
 		   0))
-	      ('<> 
+	      ((<> {})
 	       (reduce 
 		#'+ 
 		(mapcar 
 		 #'patt-expr-min-width (patt-expr-pos-args expression))))
-	      ('{} 
-	       (reduce 
-		#'+ 
-		(mapcar 
-		 #'patt-expr-min-width (patt-expr-pos-args expression))))
-	      ('^ 1)
-	      ('^^ 1)
-	      ('^* 1)
-	      ('^+ 1)
-	      ('^n 1)
-	      ('^@ 1)
-	      ('/ 1)
-	      ('literal 1)
-	      ('general 1)
+	      (^ 1)
+	      (^^ 1)
+	      (^* 1)
+	      (^+ 1)
+	      (^n 1)
+	      (^@ 1)
+	      (/ 1)
+	      (literal 1)
+	      (general 1)
 	      (otherwise 
 	       (when (not (op-is-pred? expression)) 
 		 (print 'op-error1) 
@@ -85,12 +68,12 @@
 		 0))))
 	  (let ((n (get-/n expression)))
 	    (case (patt-expr-get-op expression)
-	      ('_! (if n n 1))
-	      ('_+ (if n n 1))
-	      ('_? 0)
-	      ('@ 1)
-	      ('_* (if n n 0))
-	      ('literal 1)
+	      (_! (if n n 1))
+	      (_+ (if n n 1))
+	      (_? 0)
+	      (@ 1)
+	      (_* (if n n 0))
+	      (literal 1)
 	      (otherwise 
 	       (when (not (op-is-pred? expression))
 		 (print 'op-error2) 
@@ -104,7 +87,7 @@
       (if (listp expression)
 	  (let ((n (get-/n (car expression))) (m (get-/m (car expression))))
 	    (case (patt-expr-get-op expression)
-	      ('! 
+	      (!
 	       (if (patt-expr-pos-args expression)
 		   (if n 
 		       (* n 
@@ -117,9 +100,9 @@
 			(mapcar 
 			 #'patt-expr-max-width (patt-expr-pos-args expression))))
 		   1))
-	      ('+
+	      (+
 	       most-positive-fixnum)
-	      ('? 
+	      (?
 	       (if n 
 		   (* n 
 		      (reduce 
@@ -132,7 +115,7 @@
 		    (cons 1
 			  (mapcar 
 			   #'patt-expr-max-width (patt-expr-pos-args expression))))))
-	      ('* 
+	      (*
 	       (if m 
 		   (* m 
 		      (reduce 
@@ -140,25 +123,25 @@
 		       (mapcar 
 			#'patt-expr-max-width (patt-expr-pos-args expression)))) 
 		   most-positive-fixnum))
-	      ('<> 
+	      (<>
 	       (reduce 
 		#'+ 
 		(mapcar 
 		 #'patt-expr-max-width (patt-expr-pos-args expression))))
-	      ('{} 
+	      ({}
 	       (reduce 
 		#'+ 
 		(mapcar 
 		 #'patt-expr-max-width (patt-expr-pos-args expression))))
-	      ('^ 1)
-	      ('^^ 1)
-	      ('^* 1)
-	      ('^+ 1)
-	      ('^n 1)
-	      ('/ 1)
-	      ('^@ 1)
-	      ('literal 1)
-	      ('general 1)
+	      (^ 1)
+	      (^^ 1)
+	      (^* 1)
+	      (^+ 1)
+	      (^n 1)
+	      (/ 1)
+	      (^@ 1)
+	      (literal 1)
+	      (general 1)
 	      (otherwise 
 	       (when (not (op-is-pred? expression)) 
 		 (print 'op-error3) 
@@ -166,12 +149,12 @@
 		 most-positive-fixnum))))
 	  (let ((n (get-/n expression)) (m (get-/m expression)))
 	    (case (patt-expr-get-op expression)
-	      ('_! (if n n 1))
-	      ('_+ most-positive-fixnum)
-	      ('@ 1)
-	      ('_? (if n n 1))
-	      ('_* (if (and n m) m most-positive-fixnum))
-	      ('literal 1)
+	      (_! (if n n 1))
+	      (_+ most-positive-fixnum)
+	      (@ 1)
+	      (_? (if n n 1))
+	      (_* (if (and n m) m most-positive-fixnum))
+	      (literal 1)
 	      (otherwise 
 	       (when (not (op-is-pred? expression)) 
 		 (print 'op-error4) 
