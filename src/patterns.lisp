@@ -77,14 +77,14 @@
 
 
 
-(declaim (inline ensure-compiled))    
+;(declaim (inline ensure-compiled))    
 (defmethod ensure-compiled ((patt pattern))
   (if (compiled? patt) 
       patt 
       (compile-pattern patt)))
 
 
-(declaim (inline match))
+;(declaim (inline match))
 (defmethod match ((patt pattern) tree-seq bindings)
   "Generic method to match a compiled pattern against a sequence of trees"
   (if (> *ttt-debug-level* 0)

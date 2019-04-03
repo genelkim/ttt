@@ -89,6 +89,12 @@
 	(prev tree-expr)
 	(n 0))
 
+  (if (> *ttt-debug-level* 0)
+    (progn
+      (format t "===apply-rules===~%")
+      (format t "rules:     ~s~%" rules)
+      (format t "tree-expr: ~s~%~%" tree-expr)))
+
     (case rule-order
       (:slow-forward
        (loop while (not converged) do
@@ -211,6 +217,12 @@
   "Destructively modifies tree to implement the results of 
    a previously bound transduction operator. 
    Returns the modified tree."
+   (if (> *ttt-debug-level* 0)
+    (progn
+      (format t "===do-transduction===~%")
+      (format t "tree:      ~s~%" tree)
+      (format t "t-binding: ~s~%" t-binding)
+      (format t "bindings:  ~s~%~%" bindings)))
   (let ((new-subtree  
 	 (template-to-tree (t-bind-template-expr t-binding) bindings t))
 	(par (t-bind-parent t-binding))
