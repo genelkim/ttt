@@ -1,6 +1,6 @@
 (in-package :ttt)
 
-;;     This was primarily used during inital development.   
+;;     This was primarily used during inital development.
 ;;     It is certainly not comprehensive in testing combinations of pattern operators.
 ;;     It only tests match pass/fail.    It does not test transductions, constructions, or even inspect bindings.
 ;;     It does not test the iterative constraints or sticky bindings.
@@ -27,11 +27,11 @@
   (let (tmp)
     (dolist (pair *pattern-matching-tests*)
       (push (list (build-pattern (test-getpat pair))
-		  (build-tree (test-getexpr pair))
-		  (test-getbind pair))
-	    tmp))
+                  (build-tree (test-getexpr pair))
+                  (test-getbind pair))
+            tmp))
     (setf *pattern-matching-tests* (nreverse tmp))))
-  
+
 
 (defparameter matchfn 'match-f)
 
@@ -41,46 +41,46 @@
   (let ((count-pass 0) (count-fail 0))
     (dolist (test *pattern-matching-tests*)
       (when (eq mode 'all)
-	(if multi-line
-	    (format t "----------------~%patt: ~s~%expr: ~s~%" (to-expr (test-getpat test)) (to-expr (test-getexpr test)))
-	  (format t "~20s~t ~t~20s ~t " (test-getpat test) (test-getexpr test))))
+        (if multi-line
+            (format t "----------------~%patt: ~s~%expr: ~s~%" (to-expr (test-getpat test)) (to-expr (test-getexpr test)))
+          (format t "~20s~t ~t~20s ~t " (test-getpat test) (test-getexpr test))))
       (let ((result (funcall matchfn (test-getpat test) (test-getexpr test))))
-	(if (or (and result (test-getbind test))
-		(and (null result) (null (test-getbind test))))
-	    (incf count-pass)
-	  (incf count-fail))
-	(when (or (and (eq mode 'fail) 
-		       (not (or (and result (test-getbind test))
-				(and (null result) (null (test-getbind test))))))
-		  (and (eq mode 'pass)
-		       (or (and result (test-getbind test))
-			   (and (null result) (null (test-getbind test)))))
-		  (eq mode 'all))
-	  (unless (eq mode 'all)
-	    (if multi-line
-		(format t "----------------~%patt: ~s~%expr: ~s~%result: ~s~%" (to-expr (test-getpat test)) (to-expr (test-getexpr test)) result)
-	      (format t "~20s~t ~t~20s ~t~20a ~t " (to-expr (test-getpat test)) (to-expr (test-getexpr test)) result)))
-	  (cond ((or (and result (test-getbind test))
-		     (and (null result) (null (test-getbind test))))
-		 (format t "PASS~t~a~%" result))
-		(t (format t "FAIL~t~a~%" result)))
-	  (if prompt
-	      (let ((action (read-char)))
-		(if (equalp (intern (string-upcase  action) *package*) 's)
-		    (return-from run-tests nil)))))))
+        (if (or (and result (test-getbind test))
+                (and (null result) (null (test-getbind test))))
+            (incf count-pass)
+          (incf count-fail))
+        (when (or (and (eq mode 'fail)
+                       (not (or (and result (test-getbind test))
+                                (and (null result) (null (test-getbind test))))))
+                  (and (eq mode 'pass)
+                       (or (and result (test-getbind test))
+                           (and (null result) (null (test-getbind test)))))
+                  (eq mode 'all))
+          (unless (eq mode 'all)
+            (if multi-line
+                (format t "----------------~%patt: ~s~%expr: ~s~%result: ~s~%" (to-expr (test-getpat test)) (to-expr (test-getexpr test)) result)
+              (format t "~20s~t ~t~20s ~t~20a ~t " (to-expr (test-getpat test)) (to-expr (test-getexpr test)) result)))
+          (cond ((or (and result (test-getbind test))
+                     (and (null result) (null (test-getbind test))))
+                 (format t "PASS~t~a~%" result))
+                (t (format t "FAIL~t~a~%" result)))
+          (if prompt
+              (let ((action (read-char)))
+                (if (equalp (intern (string-upcase  action) *package*) 's)
+                    (return-from run-tests nil)))))))
     (if disp-counts
-	(format t "pass: ~a~tfail:  ~a~%" count-pass count-fail))))
+        (format t "pass: ~a~tfail:  ~a~%" count-pass count-fail))))
 
 
 (defun disp-test (test &key (multi-line t))
   (let ((result (funcall matchfn (test-getpat test) (test-getexpr test))))
     (if multi-line
-	(format t "P: ~s~%E: ~s~%R: ~s~%S: " (test-getpat test) (test-getexpr test) result)
-	(format t "~20s~t ~t~20s ~t~20a ~t " (test-getpat test) (test-getexpr test) result))
+        (format t "P: ~s~%E: ~s~%R: ~s~%S: " (test-getpat test) (test-getexpr test) result)
+        (format t "~20s~t ~t~20s ~t~20a ~t " (test-getpat test) (test-getexpr test) result))
     (if (or (and result (test-getbind test))
-	    (and (null result) (null (test-getbind test))))
-	(format t "PASS~t~a~%" result)
-	(format t "FAIL~t~a~%" result))))
+            (and (null result) (null (test-getbind test))))
+        (format t "PASS~t~a~%" result)
+        (format t "FAIL~t~a~%" result))))
 
 
 
@@ -101,14 +101,14 @@
   (format t "individually testing match pass/fail for _!, _?, _+, _*, !, and ?:~%")
   (run-tests :disp-counts 't :prompt prompt :mode mode)
 )
-  
+
 
 
 (defun clear-tests ()
   (setf *pattern-matching-tests* nil))
 
-	    
-	  
+
+
 
 
 (defun load-tests-nva ()
@@ -122,7 +122,7 @@
 
 
 
-(defun load-tests-_! () 	
+(defun load-tests-_! ()
 
   ; at least one
   (add-test '(_!) '() nil)
@@ -131,7 +131,7 @@
   (add-test '(X _! X) '(X X) nil)
   (add-test '(X _! Y) '(X Y) nil)
   ; at most one
-  (add-test '(_!) '(X X) nil) 
+  (add-test '(_!) '(X X) nil)
   ; typical useages
 
 
@@ -150,7 +150,7 @@
   (add-test '(X _! Y) '(Y Y Y) nil)
   (add-test '(Y _! X) '(Y X Y) nil)
   (add-test '(Y _! X) '(Y X X) 't))
-  
+
 (defun load-tests-! ()
   (add-test '((! X)) '(X) 't)
   (add-test '((! X)) '(Y) nil)
@@ -178,7 +178,7 @@
 
 
 
-(defun load-tests-_? () 
+(defun load-tests-_? ()
   (add-test '(_?) '(X) 't)
   (add-test '(_?) '() 't)
   (add-test '(_?) '(X Y) nil)
@@ -266,7 +266,7 @@
   (add-test '(X (* X Y ~ Z) X) '(X X) 't)
   (add-test '(X (* X Y ~ Z) Z) '(X Z) 't)
 
-  (add-test '(X (* X Y ~ Z) X) '(X Y X) 't)  
+  (add-test '(X (* X Y ~ Z) X) '(X Y X) 't)
   (add-test '(X (* X Y ~ Z) X) '(X Y Y X) 't)
   (add-test '(X (* X Y ~ Z) X) '(X Y X X Y X Y X) 't)
   (add-test '(X (* X Y ~ Z) X) '(X Y X X Y X Y Z X) nil)
@@ -304,7 +304,7 @@
   (add-test '(X (+ X Y ~ Z) X) '(X X) nil)
   (add-test '(X (+ X Y ~ Z) Z) '(X Z) nil)
 
-  (add-test '(X (+ X Y ~ Z) X) '(X Y X) 't)  
+  (add-test '(X (+ X Y ~ Z) X) '(X Y X) 't)
   (add-test '(X (+ X Y ~ Z) X) '(X Y Y X) 't)
   (add-test '(X (+ X Y ~ Z) X) '(X Y X X Y X Y X) 't)
   (add-test '(X (+ X Y ~ Z) X) '(X Y X X Y X Y Z X) nil)
@@ -318,7 +318,7 @@
   (add-test '(X (+ X Y ~ Z) Z) '(X X Z) 't)
   (add-test '(X (+ X Y ~ Z) Z) '(X Y X Z) 't)
   (add-test '(X (+ X Y ~ Z) Z) '(X X Y Y X Z) 't))
-  
+
 
 (defun load-tests-_+ ()
   (add-test '(_+) '() nil)
@@ -402,7 +402,7 @@
   (add-test '(X (_?) Z) '(X Y Z) nil)
   (add-test '(X (_?) Z) '(X  Z) nil)
   (add-test '(X () Z) '(X () Z) t)
-  
+
   (add-test '(X (X)) '(X (X)) t)
   (add-test '(X (X)) '((X) X) nil)
   (add-test '(X (X)) '(X (X)) t)
@@ -432,14 +432,14 @@
   (add-test '((^ X)) '((X)) t)
   (add-test '(^ X) 'X nil)
   (add-test '(^ X) '(X) t)
-  
+
   (add-test '(^^ X) 'X nil)
   (add-test '(^^ X) '(X) nil)
   (add-test '(^^ X) '((X)) t)
   (add-test '((^^ X)) '(X) nil)
   (add-test '((^^ X)) '((X)) nil)
   (add-test '((^^ X)) '(((X))) t)
-  
+
   (add-test '(^* X) 'X t)
   (add-test '(^* X) '(X) t)
   (add-test '(^* X) '((X)) t)
@@ -461,7 +461,7 @@
    '(_+ (NP (NP _+1) (CC and) (NP (NP _+2) (PP _+3))) _*)
    '(S1 (NP (NP (NNP NOAH FRIEDLAND)) (|,| |,|) (NP (JJ UPPER) (NN RIGHT)) (|,| |,|) (PP-WITH (IN WITH) (NP (NP (NNS FRIENDS)) (CC AND) (NP (NP (NN FAMILY)) (PP  (IN AT)(NP (DETP (NP (PRP HE)) (POS |'S|)) (NN BOOK) (NN SIGNING))))))(\. \.)))
    t) ; recons (_+ (NP (NP _+1) (CC and) (NP _+2)) (PP _+3) _*)
-  
+
   (add-test
    '(_+ (PP (IN _!) (NP (NP _+1) (PP _+2))) _*)
    '(S1 (FRAG (NP (NNP TANYA)) (|,| |,|) (PP-IN (IN IN) (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ BLACK) (NN DRESS)))(|,| |,|)   (PP-WITH (IN WITH)(NP (NP (NN FAMILY)) (PP-AT (IN AT)(NP (DETP (NP (PRP SHE)) (POS |'S|)) (NN GRADUATION)(NN PARTY))))) (\. \.)))
@@ -474,20 +474,20 @@
       (NP (NP (NNP BEN)) (CC AND)
        (NP (DETP (NP (PRP HE)) (POS |'S|)) (NN FRIEND) (NNP REGGI)))
       (|,| |,|) (PP-AT (IN AT) (NP (DT THE) (NN PARK))) (\. \.)))
-					; '(_+ (NP (+ (<> (NP _+1) (? (, |,|)))) (CC and) 
-					;       (NP (NP _+2) (! (PP locative-p? _+3)))) _*)
+                                        ; '(_+ (NP (+ (<> (NP _+1) (? (, |,|)))) (CC and)
+                                        ;       (NP (NP _+2) (! (PP locative-p? _+3)))) _*)
    t) ; recons   (_+ (NP <> (CC and) (NP _+2)) ! _*)
 
 
   (add-test
-   '(_+ (NP (+ (<> (NP _+1) (? (|,| |,|)))) (CC and) 
-	 (NP (NP _+2) (! (PP locative-p? _+3)))) _*)
+   '(_+ (NP (+ (<> (NP _+1) (? (|,| |,|)))) (CC and)
+         (NP (NP _+2) (! (PP locative-p? _+3)))) _*)
    '(S1
      (NP
       (NP (NP (NNP BEN)) (CC AND)
        (NP (DETP (NP (PRP HE)) (POS |'S|)) (NN FRIEND) (NNP REGGI)))
       (|,| |,|) (PP-AT (IN AT) (NP (DT THE) (NN PARK))) (\. \.)))
-   t) 
+   t)
 
   (add-test
    '(_+ (PP (IN _!) (NP (NP _+1) (PP _+2))) _*)
@@ -498,12 +498,12 @@
       (CC AND)
       (NP (NNP SAUL)
        (PRN (-LRB- -LRB-) (PP-ON (IN ON) (NP (DT THE) (NN LEFT)))
-	    (-RRB- -RRB-))
+            (-RRB- -RRB-))
        (PP-WITH (IN WITH)
-		(NP (NP (NNP MRS. KLAUSER))
-		    (PP-AT (IN AT)
-			   (NP (NP (DT THE) (NN SUMMIT))
-			       (PP-FOR (IN FOR) (NP (NN DINNER.))))))))))
+                (NP (NP (NNP MRS. KLAUSER))
+                    (PP-AT (IN AT)
+                           (NP (NP (DT THE) (NN SUMMIT))
+                               (PP-FOR (IN FOR) (NP (NN DINNER.))))))))))
    t) ; recons     (_+ (PP (IN _!) (NP _+1)) (PP _+2) _*)
 
   (add-test
@@ -515,12 +515,12 @@
       (CC AND)
       (NP (NNP SAUL)
        (PRN (-LRB- -LRB-) (PP-ON (IN ON) (NP (DT THE) (NN LEFT)))
-	    (-RRB- -RRB-))
+            (-RRB- -RRB-))
        (PP-WITH (IN WITH)
-		(NP (NP (NNP MRS. KLAUSER))
-		    (PP-AT (IN AT)
-			   (NP (NP (DT THE) (NN SUMMIT))
-			       (PP-FOR (IN FOR) (NP (NN DINNER.))))))))))
+                (NP (NP (NNP MRS. KLAUSER))
+                    (PP-AT (IN AT)
+                           (NP (NP (DT THE) (NN SUMMIT))
+                               (PP-FOR (IN FOR) (NP (NN DINNER.))))))))))
 
    t); recons     (_+ (PP (IN _!) (NP _* (NNP _+1))) (PP _+2) _*1)
 
@@ -530,11 +530,11 @@
      (FRAG (NP (NNP HALLE)) (|,| |,|)
       (PP-IN (IN IN)
        (NP
-	(NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ NEW) (JJ BLUE)
-	    (NNP BEATLES) (NN SHIRT))
-	(|,| |,|) (CC AND)
-	(NP (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ BIG) (NN SISTER))
-	    (|,| |,|) (NP (NNP TANYA)))))
+        (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ NEW) (JJ BLUE)
+            (NNP BEATLES) (NN SHIRT))
+        (|,| |,|) (CC AND)
+        (NP (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ BIG) (NN SISTER))
+            (|,| |,|) (NP (NNP TANYA)))))
       (\. \.)))
 
    t); (FRAG (NP (NP _+) ? (PP _+1)) _*)
@@ -544,86 +544,86 @@
      (FRAG (NP (NNP HALLE)) (|,| |,|)
       (PP-IN (IN IN)
        (NP
-	(NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ NEW) (JJ BLUE)
-	    (NNP BEATLES) (NN SHIRT))
-	(|,| |,|) (CC AND)
-	(NP (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ BIG) (NN SISTER))
-	    (|,| |,|) (NP (NNP TANYA)))))
+        (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ NEW) (JJ BLUE)
+            (NNP BEATLES) (NN SHIRT))
+        (|,| |,|) (CC AND)
+        (NP (NP (DETP (NP (PRP SHE)) (POS |'S|)) (JJ BIG) (NN SISTER))
+            (|,| |,|) (NP (NNP TANYA)))))
       (\. \.)))
 
    t); (_+ (PP (IN _!) (NP _* nn-nonhuman?)) (|,| |,|) (CC and) (NP (NP _*1 nn-human?) _+1) _*2)
 
   (add-test
    '(_+ (NP _* (NNP _+1))  (? (|,| |,|)) (^@ (* (NP @)) ; any number of levels of NP embedding the conjunction
-					     (NP (NP _*1 (NNP _+3)) (*1 ($ (NP _+4) (?1 (|,| |,|))))
-						 (CC (! and or)) (NP _*2 (NNP _+5)) )))
+                                             (NP (NP _*1 (NNP _+3)) (*1 ($ (NP _+4) (?1 (|,| |,|))))
+                                                 (CC (! and or)) (NP _*2 (NNP _+5)) )))
    '(S1
      (NP (NP (NNP TANYA)) (|,| |,|)
-	 (NP
-	  (NP (NP (NNP JOSH)) (|,| |,|) (NP (NNP HALLE)) (CC AND)
-	      (NP (NP (JJ LITTLE) (NNP BEN))
-		  (PP-ON (IN ON)
-			 (NP (NP (DT THE) (JJ FIRST) (NN DAY))
-			     (PP-OF (IN OF) (NP (NN SCHOOL)))))))
-	  (|,| |,|) (NP (CD 2009)))
-	 (\. \.)))
+         (NP
+          (NP (NP (NNP JOSH)) (|,| |,|) (NP (NNP HALLE)) (CC AND)
+              (NP (NP (JJ LITTLE) (NNP BEN))
+                  (PP-ON (IN ON)
+                         (NP (NP (DT THE) (JJ FIRST) (NN DAY))
+                             (PP-OF (IN OF) (NP (NN SCHOOL)))))))
+          (|,| |,|) (NP (CD 2009)))
+         (\. \.)))
    t); (_+ ((NP _* (NNP _+1)) ? (NP _*1 (NNP _+3)) *1 (CC (! and or)) (NP _*2 (NNP _+5))))
 
   (add-test
    '(_! _+ (^@ (* (_+1 @)) (! np-time?)) (!1 np-time?))
    '(S1
      (NP (NP (NNP TANYA)) (|,| |,|)
-	 (NP
-	  (NP (NP (NNP JOSH)) (|,| |,|) (NP (NNP HALLE)) (CC AND)
-	      (NP (NP (JJ LITTLE) (NNP BEN))
-		  (PP-ON (IN ON)
-			 (NP (NP (DT THE) (JJ FIRST) (NN DAY))
-			     (PP-OF (IN OF) (NP (NN SCHOOL)))))))
-	  (|,| |,|) (NP (CD 2009)))
-	 (\. \.)))
+         (NP
+          (NP (NP (NNP JOSH)) (|,| |,|) (NP (NNP HALLE)) (CC AND)
+              (NP (NP (JJ LITTLE) (NNP BEN))
+                  (PP-ON (IN ON)
+                         (NP (NP (DT THE) (JJ FIRST) (NN DAY))
+                             (PP-OF (IN OF) (NP (NN SCHOOL)))))))
+          (|,| |,|) (NP (CD 2009)))
+         (\. \.)))
    t);
   (add-test
    '(!2 (!3 (^@ (* (_+1 @)) (! np-time?))) (!1 np-time?))
    '(S1
      (NP (NP (NNP TANYA)) (|,| |,|)
-	 (NP
-	  (NP (NP (NNP JOSH)) (|,| |,|) (NP (NNP HALLE)) (CC AND)
-	      (NP (NP (JJ LITTLE) (NNP BEN))
-		  (PP-ON (IN ON)
-			 (NP (NP (DT THE) (JJ FIRST) (NN DAY))
-			     (PP-OF (IN OF) (NP (NN SCHOOL)))))))
-	  (|,| |,|) (NP (CD 2009)))
-	 (\. \.)))
+         (NP
+          (NP (NP (NNP JOSH)) (|,| |,|) (NP (NNP HALLE)) (CC AND)
+              (NP (NP (JJ LITTLE) (NNP BEN))
+                  (PP-ON (IN ON)
+                         (NP (NP (DT THE) (JJ FIRST) (NN DAY))
+                             (PP-OF (IN OF) (NP (NN SCHOOL)))))))
+          (|,| |,|) (NP (CD 2009)))
+         (\. \.)))
    t);
 
   (add-test
    '(_! _* (^@ (* (_+1 @)) (! np-time?)) (!1 np-time?))
    '(S1
      (NP (NP (NNP TANYA)) (|,| |,|)
-	 (NP
-	  (NP (NP (NNP JOSH)) (|,| |,|) (NP (NNP HALLE)) (CC AND)
-	      (NP (NP (JJ LITTLE) (NNP BEN))
-		  (PP-ON (IN ON)
-			 (NP (NP (DT THE) (JJ FIRST) (NN DAY))
-			     (PP-OF (IN OF) (NP (NN SCHOOL)))))))
-	  (|,| |,|) (NP (CD 2009)))
-	 (\. \.)))
+         (NP
+          (NP (NP (NNP JOSH)) (|,| |,|) (NP (NNP HALLE)) (CC AND)
+              (NP (NP (JJ LITTLE) (NNP BEN))
+                  (PP-ON (IN ON)
+                         (NP (NP (DT THE) (JJ FIRST) (NN DAY))
+                             (PP-OF (IN OF) (NP (NN SCHOOL)))))))
+          (|,| |,|) (NP (CD 2009)))
+         (\. \.)))
    t);
 
   (add-test
    '(! (_!. (!1 (_!. _+))))
    '(S1
      (NP (NP (NNP TANYA)) (|,| |,|)
-	 (NP
-	  (NP (NP (NNP JOSH)) (|,| |,|) (NP (NNP HALLE)) (CC AND)
-	      (NP (NP (JJ LITTLE) (NNP BEN))
-		  (PP-ON (IN ON)
-			 (NP (NP (DT THE) (JJ FIRST) (NN DAY))
-			     (PP-OF (IN OF) (NP (NN SCHOOL)))))))
-	  (|,| |,|) (NP (CD 2009)))
-	 (\. \.)))
+         (NP
+          (NP (NP (NNP JOSH)) (|,| |,|) (NP (NNP HALLE)) (CC AND)
+              (NP (NP (JJ LITTLE) (NNP BEN))
+                  (PP-ON (IN ON)
+                         (NP (NP (DT THE) (JJ FIRST) (NN DAY))
+                             (PP-OF (IN OF) (NP (NN SCHOOL)))))))
+          (|,| |,|) (NP (CD 2009)))
+         (\. \.)))
    t);
-  
+
 
   (add-test
    '(_+ (ADJP _+1 (<> (PP _+2) (? (|,| |,|)))) _*)
@@ -631,16 +631,16 @@
      (NP (NP (NNP BEN)) (|,| |,|)
       (VP (VBG LOOKING)
        (NP (NP (NN DAPPER))
-	   (PP-IN (IN IN)
-		  (NP (DETP (NP (PRP HE)) (POS |'S|)) (JJ GREEN) (NN SHIRT)))))
+           (PP-IN (IN IN)
+                  (NP (DETP (NP (PRP HE)) (POS |'S|)) (JJ GREEN) (NN SHIRT)))))
       (|,| |,|)
       (PP-WITH (IN WITH)
        (NP (NP (NNP GRANDMA LILLIAN))
-	   (PP-AT (IN AT) (NP (DT THE) (NN SUMMIT)))))
+           (PP-AT (IN AT) (NP (DT THE) (NN SUMMIT)))))
       (\. \.)))
    t);recons (_+ (ADJP _+1) <> _*)
 
-) 
+)
 
 (defun load-tests-^@ ()
   (add-test '(^@ X) 'X t)
@@ -648,46 +648,46 @@
   (add-test '((^@ X)) 'X nil)
 
   (add-test '(^@ (_* X _*) (_* Y _*) (Z))
-	    '(X (Y (Z))) t)  
+            '(X (Y (Z))) t)
 
   (add-test '(^@ (_* X _*) (_* Y _*) (Z))
-	    '(A B X C (D E Y K (Z) L) N) t)
+            '(A B X C (D E Y K (Z) L) N) t)
 
   (add-test '(^@ (_* X _* (_* Y _*) (Z)))
-	    '(A B X C (D E Y K (Q Z T) L) N) nil)
+            '(A B X C (D E Y K (Q Z T) L) N) nil)
 
   (add-test '(^@ (_* X _* (_* Y _*) (Z)))
-	    '(A B X C (D E Y K Z L) N) nil)
+            '(A B X C (D E Y K Z L) N) nil)
 
-  (add-test '(^@ (A (B C) D) (B C) C) 
-	    '(A (B C) D) t)
+  (add-test '(^@ (A (B C) D) (B C) C)
+            '(A (B C) D) t)
   (add-test '(^@ (+ (X _! Y))) '(X Z Y) t)
   (add-test '(^@ (+ (X _! Y))) '(X (X Z Y) Y) t)
   (add-test '(^@ (+ (X _! Y))) '(X (X (X Z Y) Y) Y) t)
   (add-test '(^@ (! ((+ X) _!) (_! (+ Y))) (Z _* Z) (X))
-	    '(X X X (Z K T ( X ) P S Z)) t)
+            '(X X X (Z K T ( X ) P S Z)) t)
   (add-test '(^@ (! ((+ X) _!) (_! (+ Y))) (Z _* Z) (X))
-	    '((Z K T ( X ) P S Z) Y Y Y Y) t)
+            '((Z K T ( X ) P S Z) Y Y Y Y) t)
   (add-test '(^@ (+ (@ _*)) X)
-	    '(X) t)
+            '(X) t)
   (add-test '(^@ (+ (@ _*)) X)
-	    'X nil)
+            'X nil)
   (add-test '(^@ (+ (@ _*)) X)
-	    '((((X A) B) C) D) t)
+            '((((X A) B) C) D) t)
   (add-test '(^@ (+ (X (_! @ _+) _*)) X)
-	    '(X (Y (X (Z (X (T X Q) ) R) ) S) ) t)
+            '(X (Y (X (Z (X (T X Q) ) R) ) S) ) t)
   (add-test '(^@ (A (B _!)) A)
-	    '(A (B A)) t)
+            '(A (B A)) t)
   (add-test '(^@ (A (B _!)) A)
-	    '(A (B C)) t)
+            '(A (B C)) t)
 
   (add-test '(^@ (A @ D) (B @) C)
-	    '(A (B C) D) t)
+            '(A (B C) D) t)
   (add-test '(^@ ) '() t)
   (add-test '(^@ _!) '() nil)
 )
 
-  
+
 
 
 
@@ -715,7 +715,7 @@
   (add-test '(X) '(Y) nil)
   (add-test '(X Y) '(X Y) t)
   (add-test '(X Y) '(Y X) nil)
-)  
+)
 
 
 
@@ -756,11 +756,4 @@
 ;;(A Y X B)
 ;;CL-USER(251): (apply-rule '(^@ (A @ _! B) (/ X Y)) '(A C X B))
 ;(A C X B)
-
-
-
-
-
-
-
 

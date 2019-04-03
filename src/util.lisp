@@ -4,7 +4,7 @@
 ;~~~~~~~~~~~~~~~~~~~~~~~~
 ; Wrap [..] around symbols like !, +, ?, *, @, ~, {}, or <>, or
 ; ones starting this way, which we may want to use in some patterns
-; (e.g., in expr-patterns involving *, **, @, or ~), but can't 
+; (e.g., in expr-patterns involving *, **, @, or ~), but can't
 ; because of their special meanings in TTT. We're assuming that
 ; the expr's we want to process don't *already* contain symbols in
 ; square brackets, starting as above inside the brackets, and which
@@ -75,3 +75,4 @@
                  (T (push ch result)) ))
         (coerce (reverse result) 'string)
  )); end of preslash-unsafe-chars
+

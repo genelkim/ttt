@@ -6,7 +6,7 @@
         (n-searched 0)
         (n-matched 0))
     (declare (type fixnum n-searched n-matched))
-    (loop for tree = (read-line treebank-stream nil)  
+    (loop for tree = (read-line treebank-stream nil)
        while tree do
          (incf n-searched)
          (let ((binds (deep-match patt (build-tree (lispify-parser-output tree) :index-subtrees t))))
@@ -14,3 +14,4 @@
              (incf n-matched)
              (format t "~a~%" tree))))
     (if verbose (format t "nmatched: ~a/~a.~%" n-matched n-searched))))
+
