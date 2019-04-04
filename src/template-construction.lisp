@@ -9,6 +9,7 @@
 (defun template-to-tree (template-expr bindings return-expr)
   "Build a new tree expression from template-expression and bindings.
    When return-expr is nil, a tree object is returned instead."
+  (declare (type (or list symbol) template-expr))
   (if (> *ttt-debug-level* 0)
     (progn
       (format t "In template-to-tree: ~s~%" template-expr)
@@ -23,23 +24,25 @@
                              (1-
                               (length
                                 (symbol-name (car template-expr)))))))
-     (list
-     (funcall
-      (if return-expr #'identity #'build-tree)
-      (apply (car template-expr)
-             (reduce
-              #'append
-              (mapcar
-               (lambda (arg)
-                 (template-to-tree arg bindings t))
-               (cdr template-expr)))))))
+     (let ((template-fn (car template-expr)))
+       (declare (type (or symbol function) template-fn))
+       (list
+         (funcall
+           (if return-expr #'identity #'build-tree)
+           (apply template-fn
+                  (reduce
+                    #'append
+                    (mapcar
+                      (lambda (arg)
+                        (template-to-tree arg bindings t))
+                      (cdr template-expr))))))))
     ((consp template-expr)
       (list
        (reduce
         #'append
         (mapcar
          (lambda (x)
-           (template-to-tree x bindings return-expr ))
+           (template-to-tree x bindings return-expr))
          template-expr))))
     ((and (bound? template-expr bindings)
           (not (eq (char (string template-expr) 0) #\/)))
@@ -62,6 +65,7 @@
   "Applies the first argument to the rest of the arguments.
    This is a syntactic shortcut to avoid defining duplicates
    of lisp functions, but with the names ending in '!'."
+  (declare (type function x))
   (apply x y))
 
 (defun join-with-dash! (&rest args)
@@ -105,6 +109,7 @@
 (defparameter *subst-new-next-int*
   ;;"Simple global counter for new symbol integer extensions."
   0)
+(declaim (type fixnum *subst-new-next-int*))
 
 (defun subst-new! (sym expr)
   "Replaces every occurence of symbol sym in expr with a single new symbol,

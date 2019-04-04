@@ -1,18 +1,27 @@
 (in-package :ttt)
 (defparameter *built-patterns* (make-hash-table :test #'equal))
 (defparameter *ttt-debug-level* 0)
+(declaim (type fixnum *ttt-debug-level*)
+         (ftype (function (*) fixnum) min-width max-width min-height max-height
+                                      max-iter min-iter min-depth max-depth
+                                      height)
+         (ftype (function (*) function) match-fn)
+         (ftype (function (*) (or list symbol)) to-expr)
+         (ftype (function (*) list) pos-args neg-args)
+         (ftype (function (*) t) compiled? initialized?))
 (defclass pattern ()
-  ((min-width :accessor min-width :initform 0 :initarg :min-width)
+  ((min-width :accessor min-width :initform 0 :initarg :min-width :type fixnum)
    (max-width :accessor max-width
               :initform most-positive-fixnum
-              :initarg :max-width)
-   (min-height :accessor min-height :initform 0)
-   (max-height :accessor max-height :initform most-positive-fixnum )
+              :initarg :max-width
+              :type fixnum)
+   (min-height :accessor min-height :initform 0 :type fixnum)
+   (max-height :accessor max-height :initform most-positive-fixnum :type fixnum)
    (keys :accessor keys)
-   (compiled? :accessor compiled? :initform nil)
-   (initialized? :accessor initialized? :initarg :initialized? :initform nil)
-   (to-expr :accessor to-expr)
-   (match-fn :accessor match-fn)
+   (compiled? :accessor compiled? :initform nil :type t)
+   (initialized? :accessor initialized? :initarg :initialized? :initform nil :type t)
+   (to-expr :accessor to-expr :type (or list symbol))
+   (match-fn :accessor match-fn :type function)
    (var :accessor var :initform nil :initarg :var))
   (:documentation
    "General class representing properties common to all patterns,
@@ -27,15 +36,15 @@
    is unique to the pattern object."))
 
 (defclass has-iter-constraints ()
-  ((min-iter :accessor min-iter :initarg :min-iter)
-   (max-iter :accessor max-iter :initarg :max-iter)))
+  ((min-iter :accessor min-iter :initarg :min-iter :type fixnum)
+   (max-iter :accessor max-iter :initarg :max-iter :type fixnum)))
 (defclass has-depth-constraints ()
-  ((min-depth :accessor min-depth :initform 0)
-   (max-depth :accessor max-depth :initform most-positive-fixnum)))
+  ((min-depth :accessor min-depth :initform 0 :type fixnum)
+   (max-depth :accessor max-depth :initform most-positive-fixnum :type fixnum)))
 (defclass has-pos-args ()
-  ((pos-args :accessor pos-args :initform nil :initarg :pos-args)))
+  ((pos-args :accessor pos-args :initform nil :initarg :pos-args :type list)))
 (defclass has-neg-args ()
-  ((neg-args :accessor neg-args :initform nil :initarg :neg-args)))
+  ((neg-args :accessor neg-args :initform nil :initarg :neg-args :type list)))
 
 (defun build-pattern (expression)
   "Builds a pattern object according to expression."

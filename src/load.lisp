@@ -28,7 +28,7 @@
       asdf:*central-registry*)
 
 ;; compiler settings
-(proclaim '(optimize (speed 1) (safety 3) (space 0) (debug 3)))
+(proclaim '(optimize (speed 3) (safety 3) (space 0) (debug 3)))
 
 ;; Load TTT Choose between the following two lines depending on
 ;; whether you want the files compiled into FASLs or not:

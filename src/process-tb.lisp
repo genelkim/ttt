@@ -5,6 +5,7 @@
    ruleset should be a list of TTT rules in expression form
    note: Lisp will change (CD 0600) to (CD 600)."
 
+  (declare (type list ruleset))
   (let ((tree-n 0)
         (mod-trees 0)
         (mod-this-tree nil)
@@ -18,6 +19,7 @@
                                    :direction :output
                                    :if-exists :supersede)
                              *standard-output*)))
+    (declare (type fixnum tree-n mod-trees))
     (loop for tree = (read-line treebank-fh nil)
        while tree do
          (let* ((tree-expr (lispify-parser-output tree))
@@ -42,7 +44,7 @@
                  (format inspection-fh "~a~%" source-tree))
              (if inspect-show-res
                  (format inspection-fh "~a~%" tree-expr)))
-           (if mod-this-tree
+           (if (and mod-this-tree new-treebank-fh)
                (format new-treebank-fh "~a~%" tree-expr))))
     (when disp-summary
       (format t "~a trees modified~%" mod-trees)
