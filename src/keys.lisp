@@ -44,7 +44,7 @@
    values may be stored in any order."
   (push value (gethash (car key) (aref (index idx) (cdr key)))))
 
-(declaim (ftype (function ((or list symbol)) list) filter-ops))
+(declaim (ftype (function ((or list symbol number)) list) filter-ops))
 
 ;; TODO: clean up this monstrosity of formatting code organization.
 ;;       it's really just an if statement with each clause containing

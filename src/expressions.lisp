@@ -24,14 +24,14 @@
         (subseq expression 1 (position til expression)))
       expression))
 
-(declaim (ftype (function ((or symbol list)) fixnum) expr-height))
+(declaim (ftype (function ((or list symbol number)) fixnum) expr-height))
 (defun expr-height (expression)
   (if (atom expression)
       0
       (1+ (the fixnum (apply #'max
                              (mapcar #'expr-height expression))))))
 
-(declaim (ftype (function ((or list symbol)) fixnum) patt-expr-min-width patt-expr-max-width))
+(declaim (ftype (function ((or list symbol number)) fixnum) patt-expr-min-width patt-expr-max-width))
 (defun patt-expr-min-width (expression)
   ; Assume my fixnum declarations are correct in this function. I.e. there won't be overflow.
   (declare (optimize (safety 0)))
@@ -186,7 +186,7 @@
     (unless (op-requires-args? op)
       (get-var expression))))
 
-(declaim (ftype (function ((or list symbol)) list) filter-ops))
+(declaim (ftype (function ((or list symbol number)) list) filter-ops))
 (defun filter-ops (expression)
   "return filter-ops + finite-required-sets-of-ors for the same depth
 
@@ -248,7 +248,7 @@
    switch from ((A.0) (B.0) (C.1) (D.2) (E.2)) to (A B (C) (D E))"
   (mapcar (lambda (key) (listify (cdr key) (car key))) keys))
 
-(declaim (ftype (function (fixnum (or symbol list)) (or symbol list)) listify))
+(declaim (ftype (function (fixnum (or list symbol number)) (or list symbol number)) listify))
 (defun listify (n expr)
   (declare (type fixnum n))
   (if (= n 0)
