@@ -6,7 +6,7 @@
                                       max-iter min-iter min-depth max-depth
                                       height)
          (ftype (function (*) function) match-fn)
-         (ftype (function (*) (or list symbol)) to-expr)
+         (ftype (function (*) (or list symbol number)) to-expr)
          (ftype (function (*) list) pos-args neg-args)
          (ftype (function (*) t) compiled? initialized?))
 (defclass pattern ()
@@ -20,7 +20,7 @@
    (keys :accessor keys)
    (compiled? :accessor compiled? :initform nil :type t)
    (initialized? :accessor initialized? :initarg :initialized? :initform nil :type t)
-   (to-expr :accessor to-expr :type (or list symbol))
+   (to-expr :accessor to-expr :type (or list symbol number))
    (match-fn :accessor match-fn :type function)
    (var :accessor var :initform nil :initarg :var))
   (:documentation
