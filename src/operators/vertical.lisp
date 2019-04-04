@@ -5,6 +5,13 @@
    "Vertical path of form:
    (^@ P1 P2 ... Pp ~ N1 N2 ... Nn)"))
 
+(declaim (type fixnum *ttt-debug-level*)
+         (ftype (function (*) fixnum) min-width max-width min-height max-height
+                                      max-iter min-iter min-depth max-depth)
+         (ftype (function (*) function) match-fn)
+         (ftype (function (*) (or list symbol)) to-expr)
+         (ftype (function (*) list) pos-args neg-args)
+         (ftype (function (*) t) compiled? initialized?))
 (defstruct v-state
   pargs
   tseq
@@ -25,7 +32,8 @@
    (match-fn patt)
    (compile
     nil
-    (lambda (tree-seq bindings )
+    (lambda (tree-seq bindings)
+      (declare (type list tree-seq))
       (let (stack
             current
             (start (make-v-state
@@ -99,6 +107,8 @@
 
 
 (defun next-v-states (vstate)
+  ;; Assume my declarations are sound.
+  (declare (optimize (safety 0)))
   (let (result
         (leading-patt (first (v-state-pargs vstate))))
     (case (class-name (class-of leading-patt))
@@ -133,10 +143,12 @@
                        (cons
                         (make-instance
                          'unrestricted-seq  ;; var nil, min-w 0, max-w inf
-                         :min-width (max 0 (1- (min-iter leading-patt)))
-                         :max-width (1- (max-iter leading-patt))
-                         :min-iter (max 0 (1- (min-iter leading-patt)))
-                         :max-iter (1- (max-iter leading-patt))
+                         :min-width (max 0 (the fixnum
+                                                (1- (min-iter leading-patt))))
+                         :max-width (the fixnum (1- (max-iter leading-patt)))
+                         :min-iter (max 0 (the fixnum
+                                               (1- (min-iter leading-patt))))
+                         :max-iter (the fixnum (1- (max-iter leading-patt)))
                          :var nil
                          :initialized? t)
                          (rest (v-state-pargs vstate)))
@@ -167,18 +179,22 @@
                           (make-instance
                            'restricted-seq
                            :pos-args (pos-args leading-patt)
-                           :min-iter (max 0 (1- (min-iter leading-patt)))
-                           :max-iter (1- (max-iter leading-patt))
+                           :min-iter (max 0 (the fixnum (1- (min-iter leading-patt))))
+                           :max-iter (the fixnum (1- (max-iter leading-patt)))
                            :min-width (if (= (min-iter leading-patt) 0)
                                           0
-                                          (- (min-width leading-patt)
-                                             (/ (min-width leading-patt)
-                                                (min-iter leading-patt))))
+                                          (the fixnum
+                                               (- (min-width leading-patt)
+                                                  (the fixnum
+                                                       (floor (min-width leading-patt)
+                                                              (min-iter leading-patt))))))
                            :max-width (if (= (max-iter leading-patt) 0)
                                           0
-                                          (- (max-width leading-patt)
-                                             (/ (max-width leading-patt)
-                                                (max-iter leading-patt))))
+                                          (the fixnum
+                                               (- (max-width leading-patt)
+                                                  (the fixnum
+                                                       (ceiling (max-width leading-patt)
+                                                                (max-iter leading-patt))))))
                            :neg-args (neg-args leading-patt)
                            :var nil
                            :initialized? t)
@@ -198,14 +214,16 @@
                         (if (> (length (pos-args leading-patt)) 1)
                             (cons (make-instance
                                    'free-seq
-                                   :min-width  (- (min-width leading-patt)
-                                                  (min-width
-                                                   (first
-                                                    (pos-args leading-patt))))
-                                   :max-width  (- (max-width leading-patt)
-                                                  (max-width
-                                                   (first
-                                                    (pos-args leading-patt))))
+                                   :min-width (the fixnum
+                                                   (- (min-width leading-patt)
+                                                      (min-width
+                                                        (first
+                                                          (pos-args leading-patt)))))
+                                   :max-width (the fixnum
+                                                   (- (max-width leading-patt)
+                                                      (max-width
+                                                        (first
+                                                          (pos-args leading-patt)))))
                                    :initialized? t
                                    :pos-args (rest (pos-args leading-patt)))
                                   (rest (v-state-pargs vstate)))
@@ -226,12 +244,14 @@
                            (cons
                             (make-instance
                              'permuted-seq
-                             :min-width (- (min-width leading-patt)
-                                           (min-width
-                                            (nth n (pos-args leading-patt))))
-                             :max-width (- (max-width leading-patt)
-                                           (max-width
-                                            (nth n (pos-args leading-patt))))
+                             :min-width (the fixnum
+                                             (- (min-width leading-patt)
+                                                (min-width
+                                                  (nth n (pos-args leading-patt)))))
+                             :max-width (the fixnum
+                                             (- (max-width leading-patt)
+                                                (max-width
+                                                  (nth n (pos-args leading-patt)))))
                              :pos-args (append
                                         (subseq (pos-args leading-patt) 0 n)
                                         (subseq (pos-args leading-patt)

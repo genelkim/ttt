@@ -2,167 +2,162 @@
 ;; These functions are used only by build-pattern and build-tree
 ;; to construct the respective objects from expressions.
 
-
 (defun patt-expr-neg-args (expression)
   "Given patt = '(op X1 X1 ... Xm ~ Y1 Y2 ... Yn) return '(Y1 Y2 ... Yn)"
-  (let ((pos (position (intern "~") expression)))
+  (declare (type list expression))
+  (let* ((pkg (symbol-package (car expression)))
+         (til (if (eq pkg (find-package "COMMON-LISP"))
+                (intern "~")
+                (intern "~" pkg)))
+         (pos (position til expression)))
     (if pos (subseq expression (1+ pos)))))
 
 (defun patt-expr-pos-args (expression)
   "Given patt = '(op X1 X2 ... Xm ~ Y1 Y2 ... Yn) return '(X1 X2 ... Xm)"
+  (declare (type list expression))
   (if (and (get-op (car expression))
            (op-requires-args? (get-op (car expression))))
-      (subseq expression 1 (position (intern "~") expression))
+      (let* ((pkg (symbol-package (car expression)))
+             (til (if (eq pkg (find-package "COMMON-LISP"))
+                    (intern "~")
+                    (intern "~" pkg))))
+        (subseq expression 1 (position til expression)))
       expression))
 
+(declaim (ftype (function ((or symbol list)) fixnum) expr-height))
 (defun expr-height (expression)
   (if (atom expression)
       0
-      (1+ (reduce #'max (mapcar #'expr-height expression)))))
+      (1+ (the fixnum (apply #'max
+                             (mapcar #'expr-height expression))))))
 
+(declaim (ftype (function ((or list symbol)) fixnum) patt-expr-min-width patt-expr-max-width))
 (defun patt-expr-min-width (expression)
-  (if (patt-expr-get-op expression)
-      (if (listp expression)
-          (let ((n (get-/n (car expression))) (m (get-/m (car expression))))
-            (case (patt-expr-get-op expression)
-              ((! +)
-               (if (patt-expr-pos-args expression)
-                   (if n
-                       (* n (reduce
-                             #'min
-                             (mapcar
-                              #'patt-expr-min-width
-                              (patt-expr-pos-args expression))))
-                       (reduce
-                        #'min
-                        (mapcar
-                         #'patt-expr-min-width
-                         (patt-expr-pos-args expression)))) 1))
-              (? 0)
-              (*
-               (if (and n m)
-                   (* n
-                      (reduce
-                       #'min
-                       (mapcar
-                        #'patt-expr-min-width (patt-expr-pos-args expression))))
-                   0))
-              ((<> {})
-               (reduce
-                #'+
-                (mapcar
-                 #'patt-expr-min-width (patt-expr-pos-args expression))))
-              (^ 1)
-              (^^ 1)
-              (^* 1)
-              (^+ 1)
-              (^n 1)
-              (^@ 1)
-              (/ 1)
-              (literal 1)
-              (general 1)
-              (otherwise
-               (when (not (op-is-pred? expression))
-                 (print 'op-error1)
-                 (print (patt-expr-get-op expression))
-                 0))))
+  ; Assume my fixnum declarations are correct in this function. I.e. there won't be overflow.
+  (declare (optimize (safety 0)))
+  (let ((expr-op (patt-expr-get-op expression)))
+    (cond
+      ;; List expression with an operator.
+      ((and expr-op (listp expression))
+       (let ((n (get-/n (car expression)))
+             (m (get-/m (car expression))))
+         (case expr-op
+           ;; First all the operators that requires some computation.
+           ((! + *)
+            (let* ((pos-args (patt-expr-pos-args expression))
+                   (recmin (if pos-args
+                             (apply #'min
+                                    (mapcar #'patt-expr-min-width pos-args)))))
+              (declare (type fixnum recmin))
+              (case expr-op
+                ((! +) (cond
+                         ((and pos-args n) (the fixnum (* n recmin)))
+                         (pos-args recmin)
+                         (t 1)))
+                (* (if (and n m)
+                     (the fixnum (* n recmin))
+                     0)))))
+           ((<> {})
+            (reduce #'+ (mapcar #'patt-expr-min-width
+                                (patt-expr-pos-args expression))))
+           (? 0)
+           ((^ ^^ ^* ^+ ^n ^@ / literal general) 1)
+           (otherwise
+             (when (not (op-is-pred? expression))
+               (print 'op-error1)
+               (print (patt-expr-get-op expression))
+               0)))))
+      ;; Symbol expression with operator.
+      (expr-op
           (let ((n (get-/n expression)))
             (case (patt-expr-get-op expression)
-              (_! (if n n 1))
-              (_+ (if n n 1))
+              ((_! _+) (if n n 1))
               (_? 0)
-              (@ 1)
               (_* (if n n 0))
-              (literal 1)
+              ((@ literal) 1)
               (otherwise
                (when (not (op-is-pred? expression))
                  (print 'op-error2)
                  (print (patt-expr-get-op expression)))
                1))))
-      (if (sticky? expression) 0 1)))
+      ;; Sticky expression.
+      ((sticky? expression) 0)
+      ;; No operators and not sticky.
+      (t 1))))
 
 
 (defun patt-expr-max-width (expression)
-  (if (patt-expr-get-op expression)
-      (if (listp expression)
-          (let ((n (get-/n (car expression))) (m (get-/m (car expression))))
-            (case (patt-expr-get-op expression)
-              (!
-               (if (patt-expr-pos-args expression)
-                   (if n
-                       (* n
-                          (reduce
-                           #'max
-                           (mapcar
-                            #'patt-expr-max-width (patt-expr-pos-args expression))))
-                       (reduce
-                        #'max
-                        (mapcar
-                         #'patt-expr-max-width (patt-expr-pos-args expression))))
-                   1))
-              (+
-               most-positive-fixnum)
-              (?
-               (if n
-                   (* n
-                      (reduce
-                       #'max
-                       (cons 1
-                       (mapcar
-                        #'patt-expr-max-width (patt-expr-pos-args expression)))))
-                   (reduce
-                    #'max
-                    (cons 1
-                          (mapcar
-                           #'patt-expr-max-width (patt-expr-pos-args expression))))))
-              (*
-               (if m
-                   (* m
-                      (reduce
-                       #'max
-                       (mapcar
-                        #'patt-expr-max-width (patt-expr-pos-args expression))))
-                   most-positive-fixnum))
-              (<>
-               (reduce
-                #'+
-                (mapcar
-                 #'patt-expr-max-width (patt-expr-pos-args expression))))
-              ({}
-               (reduce
-                #'+
-                (mapcar
-                 #'patt-expr-max-width (patt-expr-pos-args expression))))
-              (^ 1)
-              (^^ 1)
-              (^* 1)
-              (^+ 1)
-              (^n 1)
-              (/ 1)
-              (^@ 1)
-              (literal 1)
-              (general 1)
-              (otherwise
-               (when (not (op-is-pred? expression))
-                 (print 'op-error3)
-                 (print (patt-expr-get-op expression))
-                 most-positive-fixnum))))
-          (let ((n (get-/n expression)) (m (get-/m expression)))
-            (case (patt-expr-get-op expression)
-              (_! (if n n 1))
-              (_+ most-positive-fixnum)
-              (@ 1)
-              (_? (if n n 1))
-              (_* (if (and n m) m most-positive-fixnum))
-              (literal 1)
-              (otherwise
+  ; Assume my fixnum declarations are correct in this function. I.e. there won't be overflow.
+  (declare (optimize (safety 0)))
+  (let ((expr-op (patt-expr-get-op expression)))
+    (cond
+      ;; List expression with operator.
+      ((and expr-op (listp expression))
+       (let ((n (get-/n (car expression)))
+             (m (get-/m (car expression))))
+         (case expr-op
+           ;; First take care of operators that require similar computation.
+           ((! ? *)
+            (let* ((pos-args (patt-expr-pos-args expression))
+                   (recmax (if pos-args
+                             (apply #'max
+                                    (mapcar #'patt-expr-max-width pos-args)))))
+              (declare (type fixnum recmax))
+              (case expr-op
+                (! (cond
+                     ((and pos-args n)
+                      (the fixnum
+                           ;; Make sure we don't overflow
+                           (if (> recmax
+                                  (floor most-positive-fixnum n))
+                             most-positive-fixnum
+                             (* n recmax))))
+                     (pos-args recmax)
+                     (t 1)))
+                (? (let ((locmax (max 1 recmax)))
+                     (the fixnum
+                          (cond
+                            ;; Avoid overflow.
+                            ((and n (> locmax (floor most-positive-fixnum n)))
+                             most-positive-fixnum)
+                            ;; Otherwise compute.
+                            (n (* n locmax))
+                            ;; No n.
+                            (t locmax)))))
+                (* (the fixnum
+                        (if (and m (<= recmax (floor most-positive-fixnum m)))
+                          (* m recmax)
+                          ;; Avoid overflow.
+                          most-positive-fixnum))))))
+           ((<> {})
+            (reduce #'+
+                    (mapcar #'patt-expr-max-width (patt-expr-pos-args expression))))
+           (+ most-positive-fixnum)
+           ((^ ^^ ^* ^+ ^n / ^@ literal general) 1)
+           (otherwise
+             (when (not (op-is-pred? expression))
+               (print 'op-error3)
+               (print (patt-expr-get-op expression))
+               most-positive-fixnum)))))
+
+       ;; Symbol expression with operator.
+       (expr-op
+         (let ((n (get-/n expression))
+               (m (get-/m expression)))
+           (case (patt-expr-get-op expression)
+             ((_! _?) (if n n 1))
+             (_+ most-positive-fixnum)
+             (_* (if (and n m) m most-positive-fixnum))
+             ((@ literal) 1)
+             (otherwise
                (when (not (op-is-pred? expression))
                  (print 'op-error4)
                  (print (patt-expr-get-op expression)))
                most-positive-fixnum))))
-      (if (sticky? expression)
-          most-positive-fixnum
-          1)))
+       ;; Sticky expression.
+       ((sticky? expression) most-positive-fixnum)
+       ;; No operators and not sticky.
+       (t 1))))
 
 
 (defun patt-expr-get-op (expression)
@@ -173,7 +168,7 @@
         (cond ((and (get-op (car expression))
                     (op-requires-args? (get-op (car expression))))
                (get-op (car expression)))
-              ((equal (filter-ops expression) (list expression))  'literal)
+              ((equal (filter-ops expression) (list expression)) 'literal)
               (t 'general))
         (if (op-requires-args? (get-op expression))
             (if (sticky? (get-var expression)) 'sticky-check)
@@ -191,6 +186,7 @@
     (unless (op-requires-args? op)
       (get-var expression))))
 
+(declaim (ftype (function ((or list symbol)) list) filter-ops))
 (defun filter-ops (expression)
   "return filter-ops + finite-required-sets-of-ors for the same depth
 
@@ -252,8 +248,10 @@
    switch from ((A.0) (B.0) (C.1) (D.2) (E.2)) to (A B (C) (D E))"
   (mapcar (lambda (key) (listify (cdr key) (car key))) keys))
 
+(declaim (ftype (function (fixnum (or symbol list)) (or symbol list)) listify))
 (defun listify (n expr)
+  (declare (type fixnum n))
   (if (= n 0)
       expr
-    (listify (1- n) (list expr))))
+    (listify (the fixnum (1- n)) (list expr))))
 

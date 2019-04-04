@@ -1,10 +1,13 @@
 (in-package :ttt)
 ;; trees.lisp
+(declaim (ftype (function (*) fixnum) height nchildren)
+         (ftype (function (*) (or list symbol)) to-expr)
+         (ftype (function (*) (or symbol list)) children))
 (defclass tree ()
-  ((children :accessor children)
-   (to-expr :accessor to-expr)
-   (nchildren :accessor nchildren)
-   (height   :accessor height)
+  ((children :accessor children :type (or list symbol))
+   (to-expr :accessor to-expr :type (or list symbol))
+   (nchildren :accessor nchildren :type fixnum)
+   (height   :accessor height :type fixnum)
    (keys     :accessor keys)
    (to-subtrees :accessor to-subtrees)
    (parent :initform nil :accessor parent)
@@ -27,6 +30,7 @@
               (nchildren node) 0
               (height node) 0)
         (let (tmp-node (n -1))
+          (declare (type fixnum n))
           (setf (children node) nil)
           (dolist (item expression)
             (setf tmp-node (build-tree item :root nil :index-subtrees nil))
@@ -35,12 +39,15 @@
             (push tmp-node (children node)))
           (setf (children node) (nreverse (children node)))
           (setf (height node)
-                (1+ (reduce #'max (mapcar #'height (children node)))))
+                (the fixnum
+                     (1+ (the fixnum
+                              (apply #'max (mapcar #'height (children node)))))))
           (setf (nchildren node) (length (children node)))))
     (when root
       (let ((to-subtrees (if index-subtrees (make-index)))
             (dfs-order 0)
             stack)
+        (declare (type fixnum dfs-order))
         (push node stack)
         (loop while stack do
              (let ((current (pop stack)))
@@ -60,6 +67,7 @@
    particularly useful after transductions modify a tree."
   (let ((dfs-order -1)
         (stack (list root)))
+    (declare (type fixnum dfs-order))
     (loop while stack do
          (let ((current (pop stack)))
            (setf (dfs-order current) (incf dfs-order))

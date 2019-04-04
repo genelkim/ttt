@@ -69,6 +69,7 @@
 (defun satisfies-constraints (binds constraints)
   "STUB"
   (dolist (c constraints)
+    (declare (type function c))
     (if (funcall c binds) (return nil)))
   t)
 

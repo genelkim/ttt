@@ -34,6 +34,7 @@
 
 (declaim (inline wrap-sticky-check))
 (defun wrap-sticky-check (var function)
+  (declare (type function function))
   (if (sticky? var)
       (lambda (tree-seq bindings)
         (if (bound? var bindings)

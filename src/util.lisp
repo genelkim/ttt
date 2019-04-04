@@ -12,6 +12,7 @@
 ; the hidden symbols in a formula.
 ;
   (let (str chars)
+       (declare (type list chars))
        (cond ((symbolp expr)
               (setq str (string expr))
               (setq chars (coerce str 'list))
@@ -34,6 +35,7 @@
 ; in expr by 'hide-ttt-ops':
 ;
  (let (str chars)
+      (declare (type list chars))
       (cond ((symbolp expr)
              (setq str (string expr))
              (setq chars (coerce str 'list))

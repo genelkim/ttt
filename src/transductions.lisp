@@ -75,19 +75,23 @@
    :fast-forward   - apply each rule at most once, in order, repeating
                      the list until convergence"
 
+  (declare (type list rules))
+
   (let ((tr (if shallow
                 (build-tree tree-expr :index-subtrees nil)
                 (build-tree tree-expr :index-subtrees t)))
-        (trace-file (if trace (if (eq trace t)
-                                  t
-                                  (open trace
-                                        :direction :output
-                                        :if-exists :append
-                                        :if-does-not-exist :create))))
+        (trace-file (if (or (eq trace t) (null trace))
+                      *standard-output*
+                      (open trace
+                            :direction :output
+                            :if-exists :append
+                            :if-does-not-exist :create)))
         (compiled-rules (mapcar #'build-pattern rules))
         (converged nil)
         (prev tree-expr)
         (n 0))
+    (declare (type fixnum n max-n)
+             (type stream trace-file))
 
   (if (> *ttt-debug-level* 0)
     (progn
@@ -106,7 +110,7 @@
                     (converged2 nil))
                 (loop while (and (not converged2) b (< n max-n)) do
                      (setf tr (do-transduction tr (get-binding '/ b) b))
-                     (if trace-file
+                     (if trace
                          (format trace-file "~a~%~a~%~a~%~%"
                                  (to-expr r)
                                  prev
@@ -131,7 +135,7 @@
                 (when b
                   (setf prev (to-expr tr))
                   (setf tr (do-transduction tr (get-binding '/ b) b))
-                  (if trace-file
+                  (if trace
                       (format trace-file "~a~%~a~%~a~%~%"
                               (to-expr r)
                               prev
@@ -151,7 +155,7 @@
                 (when b
                   (setf prev (to-expr tr))
                   (setf tr (do-transduction tr (get-binding '/ b) b))
-                  (if trace-file
+                  (if trace
                       (format trace-file "~a~%~a~%~a~%~%"
                               (to-expr r)
                               prev
@@ -161,7 +165,8 @@
 
       (otherwise (error "unrecognized option for rule-order")))
 
-    (if (and trace-file (not (eq trace-file t))) (close trace-file))
+    (if (and trace-file (not (eq trace-file *standard-output*)))
+      (close trace-file))
     (to-expr tr)))
 
 (defun apply-rule (rule-expr tree-expr &key
@@ -181,26 +186,27 @@
               <tree after transduction>
               <blank line>"
 
-
+  (declare (type list rule-expr))
   (let ((tr (build-tree tree-expr :index-subtrees t))
         (compiled-rule (build-pattern rule-expr))
-        (trace-file (if trace (if (eq trace t)
-                                  t
-                                  (open trace
-                                        :direction :output
-                                        :if-exists :append
-                                        :if-does-not-exist :create))))
+        (trace-file (if (or (eq trace t) (null trace))
+                      *standard-output*
+                      (open trace
+                            :direction :output
+                            :if-exists :append
+                            :if-does-not-exist :create)))
         (prev tree-expr)
         (converged nil)
         (n 0))
+    (declare (type fixnum n max-n)
+             (type stream trace-file))
     (let ((b
            (if shallow
                (match compiled-rule (list tr) t)
                (deep-match compiled-rule tr))))
       (loop while (and (not converged) b (< n max-n)) do
            (setf tr (do-transduction tr (get-binding '/ b) b))
-           (if trace-file
-               (format trace-file "~a~%~a~%~%" prev (to-expr tr)))
+           (if trace (format trace-file "~a~%~a~%~%" prev (to-expr tr)))
            (incf n)
            (if (equal prev (to-expr tr))
                (setf converged t)
@@ -209,7 +215,8 @@
                          (match compiled-rule (list tr) t)
                          (deep-match compiled-rule tr))
                      prev (to-expr tr)))))
-    (if (and trace-file (not (eq trace-file t))) (close trace-file))
+    (if (and trace-file (not (eq trace-file *standard-output*)))
+      (close trace-file))
     (to-expr tr)))
 
 
@@ -223,13 +230,17 @@
       (format t "tree:      ~s~%" tree)
       (format t "t-binding: ~s~%" t-binding)
       (format t "bindings:  ~s~%~%" bindings)))
-  (let ((new-subtree
+  (let ((new-subtree-raw
          (template-to-tree (t-bind-template-expr t-binding) bindings t))
         (par (t-bind-parent t-binding))
-        (par-idx (t-bind-parent-idx t-binding)))
-    (if (not (= (length new-subtree) 1))
+        (par-idx (t-bind-parent-idx t-binding))
+        (fixnum-par-idx -1)
+        new-subtree)
+    (declare (type fixnum fixnum-par-idx)
+             (type list new-subtree-raw))
+    (if (not (= (length new-subtree-raw) 1))
         (error "transduction rhs cannot return more than one tree.")
-        (setf new-subtree (build-tree (car new-subtree) :index-subtrees t)))
+        (setf new-subtree (build-tree (car new-subtree-raw) :index-subtrees t)))
     (cond
       ((null par) ;; replace root
        (setf (children tree) (children new-subtree)
@@ -240,9 +251,11 @@
              (parent tree) nil
              (parent-idx tree) nil)
        (dotimes (n (nchildren tree))
-         (setf (parent (nth n (children tree)))  tree
+         (declare (type fixnum n))
+         (setf (parent (nth n (children tree))) tree
                (parent-idx (nth n (children tree))) n)))
       (t
+       (setf fixnum-par-idx par-idx)
        (setf (parent new-subtree) par)
        (setf (children par)
              (append

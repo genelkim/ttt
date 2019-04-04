@@ -25,6 +25,7 @@
 
 (defmethod match ((pred predicate-patt) tree-seq bindings)
   "Predicates do not access or modify bindings."
+  (declare (type list tree-seq))
   (if (= (length tree-seq) 1)
       (if
        (if (ttt-pred pred)
@@ -52,6 +53,7 @@
 ;; function or reorder files since this file comes after operators.lisp
 (defun get-pred-fn (sym)
   "Return the function for the base predicate symbol."
+  (declare (type symbol sym))
   (let* ((str (string sym))
          (pkg (symbol-package sym))
          (qps (position #\? str)))

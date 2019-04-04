@@ -4,11 +4,12 @@
 ;; and one or two iterative constraints, referred to as n and m.
 
 (defparameter *operation-table* nil)
-
+(declaim (type list *operation-table*))
 
 (defun add-op (op &key (predicate) (requires-args))
   "Insert op into the operation table.  Associate the operation with match-fn.
    Optionally set predicate or requires-args booleans.  (both default to nil)"
+  (declare (type symbol op))
   (setf op (intern (string op) :ttt))
   (setf (get op 'op) op)
   (setf (get op 'predicate) predicate)
@@ -83,6 +84,7 @@
   (list #\! #\* #\+ #\_ #\? #\^ #\< #\> #\{ #\} #\@ #\Space))
 (defun valid-op-suffix (string)
   "Added so that ** isn't parsed as an operator with suffix *"
+  (declare (type string string))
   (loop for n from 0 to (1- (length string)) do
        (if (member (char string n) *invalid-suffix-chars*)
            (return-from valid-op-suffix nil)))
@@ -99,6 +101,7 @@
             (if (search "." (symbol-name op))
                 (setf (get op 'sticky) t)
                 (setf (get op 'sticky) nil))))))
+(declaim (ftype (function ((or list symbol)) (or null fixnum)) get-/n get-/m))
 (defun get-/n (sym)
   (if (get-op sym)
       (get sym '/n)))

@@ -26,13 +26,15 @@
 ;; may require computation of complete conflict sets and sorting of
 ;; testable subtrees by dfs-order
 
+(declaim (ftype (function (*) (simple-array hash-table *)) index))
 (defclass index ()
     ((index :accessor index)))
 (defun make-index ()
   (let ((new-index (make-instance 'index)))
     (setf (index new-index) (make-array 3))
     (loop for n from 0 to 2 do
-         (setf (aref (index new-index) n) (make-hash-table :test #'eq)))
+         (setf (aref (index new-index) n)
+               (make-hash-table :test #'eq)))
     new-index))
 (defmethod fastmap (key (idx index))
   "used as an accessor by build-tree to reverse the list"
@@ -42,91 +44,102 @@
    values may be stored in any order."
   (push value (gethash (car key) (aref (index idx) (cdr key)))))
 
- (defun extract-keys (pattern &key (no-ops nil) (no-dups t))
+(declaim (ftype (function ((or list symbol)) list) filter-ops))
+
+;; TODO: clean up this monstrosity of formatting code organization.
+;;       it's really just an if statement with each clause containing
+;;       a large append which should be factored into variables.
+(defun extract-keys (pattern &key (no-ops nil) (no-dups t))
   "return a list of keys, where each key is a cons of the form
-    (token . depth)
-    => (extract-keys 'X)
-    ((X . 0)
-    => (extract-keys '(S (NP (NN He)) (VP (VBZ Ran)) (|.| |.|)))
-    ((S . 1) (NP . 2)  (VP . 2) (|.| . 2))
-    => (extract-keys '(<> X Y (S (NP (NN He)) (VP (VBZ Ran)) (|.|  |.|))))
-    ((X . 0) (Y . 0) (S . 1) (NP . 2) (VP . 2) (|.| . 2))"
+   (token . depth)
+   => (extract-keys 'X)
+   ((X . 0)
+   => (extract-keys '(S (NP (NN He)) (VP (VBZ Ran)) (|.| |.|)))
+   ((S . 1) (NP . 2)  (VP . 2) (|.| . 2))
+   => (extract-keys '(<> X Y (S (NP (NN He)) (VP (VBZ Ran)) (|.|  |.|))))
+   ((X . 0) (Y . 0) (S . 1) (NP . 2) (VP . 2) (|.| . 2))"
   (if no-dups
-      (append
-       (mapcar
+    (append
+      (mapcar
         (lambda (x) (cons x 0))
         (delete-duplicates
-         (delete
-          nil
-          (mapcar
-           (lambda (x) (if (atom x) x))
-           (if no-ops (list pattern) (filter-ops pattern))))))
-       (mapcar
+          (delete
+            nil
+            (mapcar
+              (lambda (x) (if (atom x) x))
+              (if no-ops (list pattern) (filter-ops pattern))))))
+      (mapcar
         (lambda (x) (cons x 1))
         (delete-duplicates
-         (delete nil
-                 (reduce #'append
-                         (mapcar
-                          (lambda (y) (if (listp y)
-                                          (mapcar
-                                           (lambda (x)
-                                             (if (atom x) x)) y)))
-                          (if no-ops (list pattern) (filter-ops pattern)))))))
-       (mapcar
+          (delete nil
+                  (the list
+                       (reduce #'append
+                               (mapcar
+                                 (lambda (y) (if (listp y)
+                                               (mapcar
+                                                 (lambda (x)
+                                                   (if (atom x) x)) y)))
+                                 (if no-ops (list pattern) (filter-ops pattern))))))))
+      (mapcar
         (lambda (x) (cons x 2))
         (delete-duplicates
-         (delete
-          nil
-          (reduce
-           #'append
-           (mapcar
-            (lambda (z)
-              (if (listp z)
-                  (delete
-                   nil
-                   (reduce
-                    #'append
-                    (mapcar
-                     (lambda (y) (if (listp y)
-                                     (mapcar
-                                      (lambda (x)
-                                        (if (atom x) x)) y))) z)))))
-            (if no-ops (list pattern) (filter-ops pattern))))))))
-      (append
-       (mapcar
-        (lambda (x) (cons x 0))
-        (delete
-         nil
-         (mapcar
-          (lambda (x) (if (atom x) x))
-          (if no-ops (list pattern) (filter-ops pattern)))))
-       (mapcar
-        (lambda (x) (cons x 1))
-        (delete
-         nil
-         (reduce
-          #'append
-          (mapcar
-           (lambda (y)
-             (if (listp y)
-                 (mapcar (lambda (x) (if (atom x) x)) y)))
-           (if no-ops (list pattern) (filter-ops pattern))))))
-       (mapcar
-        (lambda (x) (cons x 2))
-        (delete
-         nil
-         (reduce
-          #'append
-          (mapcar
-           (lambda (z)
-             (if (listp z)
-                 (delete
-                  nil
-                  (reduce
+          (delete
+            nil
+            (the list
+                 (reduce
                    #'append
                    (mapcar
-                    (lambda (y)
-                      (if (listp y)
-                          (mapcar (lambda (x) (if (atom x) x)) y))) z)))))
-           (if no-ops (list pattern) (filter-ops pattern)))))))))
+                     (lambda (z)
+                       (if (listp z)
+                         (delete
+                           nil
+                           (the list
+                                (reduce
+                                  #'append
+                                  (mapcar
+                                    (lambda (y) (if (listp y)
+                                                  (mapcar
+                                                    (lambda (x)
+                                                      (if (atom x) x)) y))) z))))))
+                     (if no-ops (list pattern) (filter-ops pattern)))))))))
+    (append
+      (mapcar
+        (lambda (x) (cons x 0))
+        (delete
+          nil
+          (mapcar
+            (lambda (x) (if (atom x) x))
+            (if no-ops (list pattern) (filter-ops pattern)))))
+      (mapcar
+        (lambda (x) (cons x 1))
+        (delete
+          nil
+          (the list
+               (reduce
+                 #'append
+                 (mapcar
+                   (lambda (y)
+                     (if (listp y)
+                       (mapcar (lambda (x) (if (atom x) x)) y)))
+                   (if no-ops (list pattern) (filter-ops pattern)))))))
+      (mapcar
+        (lambda (x) (cons x 2))
+        (delete
+          nil
+          (the list
+               (reduce
+                 #'append
+                 (mapcar
+                   (lambda (z)
+                     (if (listp z)
+                       (delete
+                         nil
+                         (the list
+                              (reduce
+                                #'append
+                                (mapcar
+                                  (lambda (y)
+                                    (if (listp y)
+                                      (mapcar (lambda (x) (if (atom x) x)) y))) z))))))
+                   (if no-ops (list pattern) (filter-ops pattern))))))))))
 
