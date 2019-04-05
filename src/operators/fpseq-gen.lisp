@@ -31,6 +31,8 @@
 
 (defun compile-helper (patt)
   "Compile general tree, free-standing, and permutation patterns."
+  (declare (type pattern patt)
+           (ftype (function (pattern) fixnum) min-width max-width))
   (let* ((cn (class-name (class-of patt))))
     (unless (member cn '(free-seq permuted-seq general-patt))
       (error "combine-helper should not be called on class ~A~%" cn))
@@ -42,8 +44,8 @@
 
       (unless (eq (class-name (class-of patt)) 'general-patt)
         (setf (var patt) (patt-expr-get-var (to-expr patt))))
-      (if (and (= (min-width patt) 1)
-               (= (max-width patt) 1))
+      (if (and (= (the fixnum (min-width patt)) 1)
+               (= (the fixnum (max-width patt)) 1))
           (setf (min-height patt) (reduce #'min (cons 0 (mapcar
                                                          #'min-height
                                                          (pos-args patt))))

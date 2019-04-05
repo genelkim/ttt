@@ -26,7 +26,7 @@
 ;; may require computation of complete conflict sets and sorting of
 ;; testable subtrees by dfs-order
 
-(declaim (ftype (function (*) (simple-array hash-table *)) index))
+(declaim (ftype (function (index) (simple-array hash-table *)) index))
 (defclass index ()
     ((index :accessor index)))
 (defun make-index ()
