@@ -6,12 +6,14 @@
    (^@ P1 P2 ... Pp ~ N1 N2 ... Nn)"))
 
 (declaim (type fixnum *ttt-debug-level*)
-         (ftype (function (*) fixnum) min-width max-width min-height max-height
-                                      max-iter min-iter min-depth max-depth)
-         (ftype (function (*) function) match-fn)
-         (ftype (function (*) (or list symbol)) to-expr)
-         (ftype (function (*) list) pos-args neg-args)
-         (ftype (function (*) t) compiled? initialized?))
+         (ftype (function (pattern) fixnum) min-width max-width min-height max-height)
+         (ftype (function (has-iter-constraints) fixnum) max-iter min-iter)
+         (ftype (function (has-depth-constraints) fixnum) min-depth max-depth)
+         (ftype (function (tree) fixnum) height)
+         (ftype (function (pattern) function) match-fn)
+         (ftype (function (pattern) (or list symbol number)) to-expr)
+         (ftype (function ((or has-pos-args has-neg-args)) list) pos-args neg-args)
+         (ftype (function (pattern) t) compiled? initialized?))
 (defstruct v-state
   pargs
   tseq

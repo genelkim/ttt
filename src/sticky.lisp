@@ -1,13 +1,15 @@
 (in-package :ttt)
-(defclass stuck-patt (pattern ) ()
+(defclass stuck-patt (pattern) ()
   (:documentation
    "A class for matching free-standing sticky variables associated with
     operators which would typically require arugments and which can be sticky.
     I.e., ! + * ? <> {} ^ ^* ^@)."))
 
 (defmethod compile-pattern ((patt stuck-patt))
-  (unless (atom patt)
-    (error "instances of stuck-patt must be atoms, got ~A~%" (to-expr patt)))
+  (declare (type pattern patt))
+  ; GK: above declaration does the error handling.
+  ;(unless (atom patt)
+  ;  (error "instances of stuck-patt must be atoms, got ~A~%" (to-expr patt)))
   (when (not (initialized? patt))
     (setf (var patt) (get-var (to-expr patt)))
     (setf (initialized? patt) t))

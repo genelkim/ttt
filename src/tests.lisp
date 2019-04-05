@@ -36,6 +36,8 @@
 (defparameter matchfn 'match-f)
 
 (defun run-tests (&key (multi-line t) (mode 'fail)  (prompt nil) (disp-counts t))
+  ;; Make the compiler be quiet about optimizations for running tests.
+  (declare (optimize (speed 0)))
   (if (not multi-line)
       (format t "~20a~t ~t~20a ~t~20a ~t ~a~%" "pattern" "expression" "bindings" "status"))
   (let ((count-pass 0) (count-fail 0))
@@ -73,6 +75,7 @@
 
 
 (defun disp-test (test &key (multi-line t))
+  (declare (optimize (speed 0)))
   (let ((result (funcall matchfn (test-getpat test) (test-getexpr test))))
     (if multi-line
         (format t "P: ~s~%E: ~s~%R: ~s~%S: " (test-getpat test) (test-getexpr test) result)

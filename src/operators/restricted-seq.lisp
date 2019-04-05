@@ -73,8 +73,8 @@
        (error "unexpected operator parsed while compiling ~A~%"
               (to-expr patt))))
 
-    (if (and (= (min-width patt) 1)
-             (= (max-width patt) 1))
+    (if (and (= (the fixnum (min-width patt)) 1)
+             (= (the fixnum (max-width patt)) 1))
         (setf (min-height patt) (reduce #'min (cons (min-height patt)
                                                     (mapcar
                                                      #'min-height
