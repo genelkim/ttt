@@ -108,8 +108,7 @@
                      ((and pos-args n)
                       (the fixnum
                            ;; Make sure we don't overflow
-                           (if (> recmax
-                                  (floor most-positive-fixnum n))
+                           (if (> recmax (floor most-positive-fixnum n))
                              most-positive-fixnum
                              (* n recmax))))
                      (pos-args recmax)
