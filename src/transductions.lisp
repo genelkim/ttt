@@ -49,12 +49,14 @@
                                       (rule-order :slow-forward)
                                       (trace nil)
                                       (shallow nil)
+                                      (deepest nil)
                                       (max-n most-positive-fixnum))
   "Apply each of the rules in list rules to a tree expression
    until each rule is no longer applicable. The rules list is only
    processed once. Returns a new tree expression.
 
    shallow    limits rule applications to root of tree
+   deepest    allows multiple recursive matches into the tree at each step
    max-n      limits the maximum number of edits to a tree
    trace      when t, displays debugging info to stdout
               otherwise, when non-nil write debugging info to file
@@ -103,12 +105,25 @@
       (:slow-forward
        (loop while (not converged) do
             (setf converged t)
+            ; TODO(gene): run the TTT tests after this change to verify correctness
+            ; TODO(gene): probable memoize the deepest match so that when we come across the same thing we don't re-compute
             (dolist (r compiled-rules)
-              (let ((b (if shallow
-                           (match r (list tr) t)
-                           (deep-match r tr)))
-                    (converged2 nil))
-                (loop while (and (not converged2) b (< n max-n)) do
+              (let ((bs (cond
+                          (shallow (list (match r (list tr) t)))
+                          (deepest (deepest-matches r tr)) ; TODO(gene): come up with better flag and generalize this to all other applicable functions
+                          (t (list (deep-match r tr)))))
+                    (converged2 nil)
+                    b)
+                (if (equal bs '(nil)) (setf bs nil))
+                ;(format t "bs: ~s~%" bs)
+                ;(when (not (null b))
+                ;  (format t "#HASH{~{~{(~a : ~a)~}~^ ~}}"
+                ;          (loop for key being the hash-keys of b
+                ;                using (hash-value value)
+                ;                collect (list key value))))
+                (loop while (and (not converged2) bs (< n max-n)) do
+                     (setf b (car bs))
+                     (setf bs (cdr bs))
                      (setf tr (do-transduction tr (get-binding '/ b) b))
                      (if trace
                          (format trace-file "~a~%~a~%~a~%~%"
@@ -116,14 +131,17 @@
                                  prev
                                  (to-expr tr)))
                      (incf n)
-                     (if (equal prev (to-expr tr))
+                     (if (and (equal prev (to-expr tr)) (not deepest))
                          (setf converged2 t)
-                         (setf b
-                               (if shallow
-                                   (match r (list tr) t)
-                                   (deep-match r tr))
+                         (setf bs
+                               (append bs 
+                                       (cond 
+                                         (shallow (match r (list tr) t))
+                                         (deepest (deepest-matches r tr))  
+                                         (t (deep-match r tr))))
                                prev (to-expr tr)
-                               converged nil)))))))
+                               converged nil)))
+                ))))
 
       (:earliest-first
        (loop while (not converged) do

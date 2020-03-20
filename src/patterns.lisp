@@ -161,3 +161,16 @@
             (setf b (deep-match-brute pattern c ))
             (if b (return b)))))))
 
+(defun deepest-matches (pattern tree)
+  "Matched a compiled pattern against a compiled tree object,
+  each subtree is tested and a list of all results are returned."
+  ; TODO(gene): match a brute vs non-brute version like above
+  (let ((b (match pattern (list tree) t )))
+    (cond
+      ((and b (leaf? tree)) (list b))
+      ((leaf? tree) nil)
+      (t 
+        (let ((recres (mapcar #'(lambda (c) (deepest-matches pattern c))
+                              (children tree))))
+          (apply #'append (if b (cons (list b) recres) recres)))))))
+
