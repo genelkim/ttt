@@ -1,5 +1,6 @@
 (defpackage :ttt)
 (asdf:defsystem :ttt
+    :depends-on (:lisp-unit)
     :components ((:file "package")
                  (:file "operators")
                  (:file "expressions")
@@ -17,7 +18,7 @@
                  (:file "predicates")
                  (:file "template-construction")
                  (:file "transductions")
-                 (:file "tests")
+                 ;(:file "tests")
                  (:file "util")
                  (:file "process-tb")
                  (:file "search-tb"))
