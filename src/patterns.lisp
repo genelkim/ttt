@@ -161,7 +161,22 @@
             (setf b (deep-match-brute pattern c ))
             (if b (return b)))))))
 
-(defun deepest-matches (pattern tree)
+(defmethod deepest-matches ((patt pattern) tree)
+  "Matched a compiled pattern against a compiled tree object,
+  each subtree is tested and a list of all results are returned.
+  Use keys to avoid matching when guaranteed to fail."
+  (if (keys patt)
+      (let (result)
+        (dolist (key (keys patt))
+          (dolist (subtree (fastmap key (to-subtrees tree)))
+            (if (and (>= (height subtree) (min-height patt))
+                     (<= (height subtree) (max-height patt)))
+              (let ((b (match patt (list subtree) t)))
+                (when b (push b result))))))
+        (reverse result))
+      (deepest-matches-brute patt tree)))
+
+(defun deepest-matches-brute (pattern tree)
   "Matched a compiled pattern against a compiled tree object,
   each subtree is tested and a list of all results are returned."
   ; TODO(gene): match a brute vs non-brute version like above
@@ -170,7 +185,7 @@
       ((and b (leaf? tree)) (list b))
       ((leaf? tree) nil)
       (t 
-        (let ((recres (mapcar #'(lambda (c) (deepest-matches pattern c))
+        (let ((recres (mapcar #'(lambda (c) (deepest-matches-brute pattern c))
                               (children tree))))
           (apply #'append (if b (cons (list b) recres) recres)))))))
 
