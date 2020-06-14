@@ -1,4 +1,4 @@
-# ttt
+# TTT (Tree-to-Tree Transduction Language)
 My personal copy of the TTT library.
 
 This is the library originally written by Adam Purtee, accompanied by the paper 
