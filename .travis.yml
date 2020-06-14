@@ -30,5 +30,5 @@ script:
   - cl -e '(ql:quickload :ttt)
            (ql:quickload :uiop)
            (in-package :ttt)
-           (unless (run-tests)
-             (uiop:quit 1))'
+           (load-tests-all)
+           (run-tests)'
