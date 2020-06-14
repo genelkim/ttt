@@ -9,5 +9,6 @@ matrix:
     
 script:
   - cl -e '(ql:quickload :ttt)
+           (ql:quickload :uiop)
            (unless (ttt:run-tests)
              (uiop:quit 1))'
