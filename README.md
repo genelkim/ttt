@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/genelkim/ttt.svg?branch=master)](https://travis-ci.com/genelkim/ttt)
+
 # TTT (Tree-to-Tree Transduction Language)
 My personal copy of the TTT library.
 
