@@ -1,0 +1,13 @@
+env:
+  matrix:
+    - LISP=allegro
+    - LISP=sbcl
+
+matrix:
+  allow_failures:
+    - env: LISP=allegro
+    
+script:
+  - cl -e '(ql:quickload :ttt)
+           (unless (ttt:run-tests)
+             (uiop:quit 1))'
