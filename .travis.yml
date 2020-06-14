@@ -29,5 +29,6 @@ before_script:
 script:
   - cl -e '(ql:quickload :ttt)
            (ql:quickload :uiop)
-           (unless (ttt:run-tests)
+           (in-package :ttt)
+           (unless (run-tests)
              (uiop:quit 1))'
