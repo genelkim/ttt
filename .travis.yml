@@ -16,7 +16,15 @@ env:
 
 matrix:
   allow_failures:
+    # Only plan to support SBCL, but check compatilibity issues on other
+    # distributions.
     - env: LISP=allegro
+    - env: LISP=abcl
+    - env: LISP=ccl
+    - env: LISP=ccl32
+    - env: LISP=clisp
+    - env: LISP=clisp32
+    - env: LISP=ecl
     # CIM not available for CMUCL
     - env: LISP=cmucl
 
