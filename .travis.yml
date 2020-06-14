@@ -1,5 +1,4 @@
 language: lisp
-sudo: required
 
 env:
   matrix:
