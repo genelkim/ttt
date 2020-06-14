@@ -31,4 +31,5 @@ script:
            (ql:quickload :uiop)
            (in-package :ttt)
            (load-tests-all)
+           (compile-tests)
            (run-tests)'
