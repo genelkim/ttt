@@ -1,7 +1,7 @@
 env:
   matrix:
-    - LISP=allegro
     - LISP=sbcl
+    - LISP=allegro
 
 matrix:
   allow_failures:
