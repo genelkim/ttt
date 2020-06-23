@@ -1,8 +1,8 @@
 (in-package :ttt)
 ;; trees.lisp
 (defclass tree ()
-  ((children :accessor children :type (or list symbol number))
-   (to-expr :accessor to-expr :type (or list symbol number))
+  ((children :accessor children :type (or list symbol number string))
+   (to-expr :accessor to-expr :type (or list symbol number string))
    (nchildren :accessor nchildren :type fixnum)
    (height   :accessor height :type fixnum)
    (keys     :accessor keys)
@@ -11,8 +11,8 @@
    (parent-idx :initform nil :accessor parent-idx)
    (dfs-order :accessor dfs-order)))
 (declaim (ftype (function (tree) fixnum) height nchildren)
-         (ftype (function (tree) (or list symbol number)) to-expr)
-         (ftype (function (tree) (or list symbol number)) children))
+         (ftype (function (tree) (or list symbol number string)) to-expr)
+         (ftype (function (tree) (or list symbol number string)) children))
 
 (defmethod leaf? ((node tree))
   (not (consp (children node))))
