@@ -18,7 +18,7 @@
                  (:file "predicates")
                  (:file "template-construction")
                  (:file "transductions")
-                 ;(:file "tests")
+                 (:file "tests") ; TODO:  ; move this to a separate testing package.move this to a separate testing package.
                  (:file "util")
                  (:file "process-tb")
                  (:file "search-tb"))
