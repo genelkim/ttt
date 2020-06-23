@@ -2,16 +2,6 @@
 ;; These functions are used only by build-pattern and build-tree
 ;; to construct the respective objects from expressions.
 
-;(defun patt-expr-neg-args (expression)
-;  "Given patt = '(op X1 X1 ... Xm ~ Y1 Y2 ... Yn) return '(Y1 Y2 ... Yn)"
-;  (declare (type list expression))
-;  (let* ((pkg (symbol-package (car expression)))
-;         (til (if (eq pkg (find-package "COMMON-LISP"))
-;                (intern "~")
-;                (intern "~" pkg)))
-;         (pos (position til expression)))
-;    (if pos (subseq expression (1+ pos)))))
-;
 (defun patt-expr-neg-args (expression)
   "Given patt = '(op X1 X1 ... Xm ~ Y1 Y2 ... Yn) return '(Y1 Y2 ... Yn)"
   (declare (type list expression))
@@ -19,25 +9,10 @@
   (let* ((symbol-interned 
            (mapcar #'(lambda (x) (if (symbolp x) (intern (symbol-name x) :ttt) x))
                    expression))
-         ;(pkg (symbol-package (car expression)))
-         ;(til (if (eq pkg (find-package "COMMON-LISP"))
-         ;       (intern "~")
-         ;       (intern "~" pkg)))
          (pos (position '~ symbol-interned)))
     ; Return original package symbols.
     (if pos (subseq expression (1+ pos)))))
 
-;(defun patt-expr-pos-args (expression)
-;  "Given patt = '(op X1 X2 ... Xm ~ Y1 Y2 ... Yn) return '(X1 X2 ... Xm)"
-;  (declare (type list expression))
-;  (if (and (get-op (car expression))
-;           (op-requires-args? (get-op (car expression))))
-;      (let* ((pkg (symbol-package (car expression)))
-;             (til (if (eq pkg (find-package "COMMON-LISP"))
-;                    (intern "~")
-;                    (intern "~" pkg))))
-;        (subseq expression 1 (position til expression)))
-;      expression))
 (defun patt-expr-pos-args (expression)
   "Given patt = '(op X1 X2 ... Xm ~ Y1 Y2 ... Yn) return '(X1 X2 ... Xm)"
   (declare (type list expression))
