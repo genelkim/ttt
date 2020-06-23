@@ -38,6 +38,7 @@ before_script:
 script:
   - cd src; cl -e '(ql:quickload :ttt)
                    (ql:quickload :uiop)
+                   (ql:quickload :lisp-unit)
                    (in-package :ttt)
                    (load-tests-all)
                    (compile-tests)
