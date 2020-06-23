@@ -51,11 +51,12 @@
   and does not check any of the inputs.
 
   Returns a list of matched subtrees."
-  (case rule-depth
-    (:shallow (list (match pattern (list tree) t)))
-    (:deepest (deepest-matches pattern tree))
-    (:default (list (deep-match pattern tree)))
-    (otherwise (error "Unknown rule-depth option: ~s~%" rule-depth))))
+  (let ((raw-match (case rule-depth
+                     (:shallow (list (match pattern (list tree) t)))
+                     (:deepest (deepest-matches pattern tree))
+                     (:default (list (deep-match pattern tree)))
+                     (otherwise (error "Unknown rule-depth option: ~s~%" rule-depth)))))
+    (if (equal raw-match '(nil)) nil raw-match)))
 
 (defun apply-rules (rules tree-expr &key
                                       (rule-order :slow-forward)
@@ -147,8 +148,7 @@
               (let ((bs (get-matches r tr rule-depth))
                     (converged2 nil)
                     b)
-                (when (equal bs '(nil)) (setf bs nil))
-                (loop while (and (not converged2) bs (< n max-n)) do
+                (loop while (and (not converged2) bs (car bs) (< n max-n)) do
                      (setf b (car bs))
                      (setf bs (cdr bs))
                      (setf tr (do-transduction tr (get-binding '/ b) b))
@@ -162,7 +162,7 @@
                               (not (eql rule-depth :deepest)))
                          (setf converged2 t)
                          (setf bs
-                               (append bs (get-matches r tr rule-depth))
+                               (get-matches r tr rule-depth)
                                prev (to-expr tr)
                                converged nil)))
                 ))))
@@ -253,7 +253,7 @@
              (type stream trace-file))
     (let* ((bs (get-matches compiled-rule tr rule-depth))
            (b (car bs)))
-      (loop while (and (not converged) bs (< n max-n)) do
+      (loop while (and (not converged) bs b (< n max-n)) do
            (setf tr (do-transduction tr (get-binding '/ b) b))
            (if trace (format trace-file "~a~%~a~%~%" prev (to-expr tr)))
            (incf n)
@@ -261,7 +261,7 @@
                     (not (eql rule-depth :deepest)))
                (setf converged t)
                (setf bs
-                     (append bs (get-matches compiled-rule tr rule-depth))
+                     (get-matches compiled-rule tr rule-depth)
                      prev (to-expr tr)))))
     (if (and trace-file (not (eq trace-file *standard-output*)))
       (close trace-file))
