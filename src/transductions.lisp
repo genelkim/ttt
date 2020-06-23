@@ -162,7 +162,7 @@
                               (not (eql rule-depth :deepest)))
                          (setf converged2 t)
                          (setf bs
-                               (get-matches r tr rule-depth)
+                               (append bs (get-matches r tr rule-depth))
                                prev (to-expr tr)
                                converged nil)))
                 ))))
@@ -252,8 +252,10 @@
     (declare (type fixnum n max-n)
              (type stream trace-file))
     (let* ((bs (get-matches compiled-rule tr rule-depth))
-           (b (car bs)))
+           b)
       (loop while (and (not converged) bs b (< n max-n)) do
+           (setf b (car bs))
+           (setf bs (cdr bs))
            (setf tr (do-transduction tr (get-binding '/ b) b))
            (if trace (format trace-file "~a~%~a~%~%" prev (to-expr tr)))
            (incf n)
@@ -261,7 +263,7 @@
                     (not (eql rule-depth :deepest)))
                (setf converged t)
                (setf bs
-                     (get-matches compiled-rule tr rule-depth)
+                     (append bs (get-matches compiled-rule tr rule-depth))
                      prev (to-expr tr)))))
     (if (and trace-file (not (eq trace-file *standard-output*)))
       (close trace-file))
