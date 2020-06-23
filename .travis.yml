@@ -36,9 +36,10 @@ before_script:
   - echo "(defsystem :dummy-cl-travis-system)" > ~/lisp/dummy-cl-travis-system.asd
 
 script:
-  - cl -e '(ql:quickload :ttt)
-           (ql:quickload :uiop)
-           (in-package :ttt)
-           (load-tests-all)
-           (compile-tests)
-           (run-tests)'
+  - cd src; cl -e '(ql:quickload :ttt)
+                   (ql:quickload :uiop)
+                   (in-package :ttt)
+                   (load-tests-all)
+                   (compile-tests)
+                   (run-tests)
+                   (load "run-unit-tests")'
