@@ -149,6 +149,7 @@
                     (converged2 nil)
                     b)
                 (loop while (and (not converged2) bs (car bs) (< n max-n)) do
+                     (setf converged2 t)
                      (setf b (car bs))
                      (setf bs (cdr bs))
                      (setf tr (do-transduction tr (get-binding '/ b) b))
@@ -158,14 +159,13 @@
                                  prev
                                  (to-expr tr)))
                      (incf n)
-                     (if (and (equal prev (to-expr tr))
-                              (not (eql rule-depth :deepest)))
-                         (setf converged2 t)
+                     (if (not (and (equal prev (to-expr tr))
+                                   (not (eql rule-depth :deepest))))
                          (setf bs
                                (append bs (get-matches r tr rule-depth))
                                prev (to-expr tr)
-                               converged nil)))
-                ))))
+                               converged nil
+                               converged2 nil)))))))
 
       (:earliest-first
        (loop while (not converged) do
