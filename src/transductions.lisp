@@ -123,7 +123,8 @@
                                    (match r (list tr) t)
                                    (deep-match r tr))
                                prev (to-expr tr)
-                               converged nil)))))))
+                               converged nil
+                               converted2 nil)))))))
 
       (:earliest-first
        (loop while (not converged) do
