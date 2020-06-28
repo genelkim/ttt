@@ -124,7 +124,7 @@
                                    (deep-match r tr))
                                prev (to-expr tr)
                                converged nil
-                               converted2 nil)))))))
+                               converged2 nil)))))))
 
       (:earliest-first
        (loop while (not converged) do
