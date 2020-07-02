@@ -142,8 +142,6 @@
       (:slow-forward
        (loop while (not converged) do
             (setf converged t)
-            ; TODO(gene): run the TTT tests after this change to verify correctness
-            ; TODO(gene): probable memoize the deepest match so that when we come across the same thing we don't re-compute
             (dolist (r compiled-rules)
               (let ((bs (get-matches r tr rule-depth))
                     (converged2 nil)
@@ -159,13 +157,19 @@
                                  prev
                                  (to-expr tr)))
                      (incf n)
-                     (if (not (and (equal prev (to-expr tr))
-                                   (not (eql rule-depth :deepest))))
-                         (setf bs
-                               (append bs (get-matches r tr rule-depth))
-                               prev (to-expr tr)
-                               converged nil
-                               converged2 nil)))))))
+                     (cond
+                       ;; New value.
+                       ((not (equal prev (to-expr tr)))
+                        (setf bs (append bs (get-matches r tr rule-depth))
+                              prev (to-expr tr)
+                              converged nil
+                              converged2 nil))
+                       ;; No new value, but going deep so continue.
+                       ((equal prev (to-expr tr))
+                        (setf converged nil
+                              converged2 nil))
+                       ;; Otherwise we've converged so just continue.
+                       ))))))
 
       (:earliest-first
        (loop while (not converged) do
@@ -253,18 +257,21 @@
              (type stream trace-file))
     (let* ((bs (get-matches compiled-rule tr rule-depth))
            b)
-      (loop while (and (not converged) bs b (< n max-n)) do
+      (loop while (and (not converged) bs (car bs) (< n max-n)) do
            (setf b (car bs))
            (setf bs (cdr bs))
            (setf tr (do-transduction tr (get-binding '/ b) b))
            (if trace (format trace-file "~a~%~a~%~%" prev (to-expr tr)))
            (incf n)
-           (if (and (equal prev (to-expr tr))
-                    (not (eql rule-depth :deepest)))
-               (setf converged t)
-               (setf bs
-                     (append bs (get-matches compiled-rule tr rule-depth))
-                     prev (to-expr tr)))))
+           (cond
+             ;; New value, so update.
+             ((not (equal prev (to-expr tr)))
+              (setf bs (append bs (get-matches compiled-rule tr rule-depth))
+                    prev (to-expr tr)))
+             ;; No new value and not deepest so got to a stopping point.
+             ((not (eql rule-depth :deepest))
+              (setf converged t))
+             )))
     (if (and trace-file (not (eq trace-file *standard-output*)))
       (close trace-file))
     (to-expr tr)))
