@@ -50,6 +50,7 @@
                                                  (ON.P (THE.D (|Starbucks| BLOCK.N))))))))))) [?]))
 
          inf-rule)
+    (declare (ignore bad-inf))
     (defun local-conj! (pat)
       (cond
         ((atom pat) pat)
