@@ -127,7 +127,7 @@
                             :if-does-not-exist :create)))
         (compiled-rules (mapcar #'build-pattern rules))
         (converged nil)
-        (prev tree-expr)
+        (prevs (list tree-expr))
         (n 0))
     (declare (type fixnum n max-n)
              (type stream trace-file))
@@ -154,18 +154,18 @@
                      (if trace
                          (format trace-file "~a~%~a~%~a~%~%"
                                  (to-expr r)
-                                 prev
+                                 (car prevs)
                                  (to-expr tr)))
                      (incf n)
                      (cond
                        ;; New value.
-                       ((not (equal prev (to-expr tr)))
+                       ((not (member (to-expr tr) prevs :test #'equal))
+                        (push (to-expr tr) prevs)
                         (setf bs (append bs (get-matches r tr rule-depth))
-                              prev (to-expr tr)
                               converged nil
                               converged2 nil))
                        ;; No new value, but going deep so continue.
-                       ((equal prev (to-expr tr))
+                       ((eql rule-depth :deepest)
                         (setf converged nil
                               converged2 nil))
                        ;; Otherwise we've converged so just continue.

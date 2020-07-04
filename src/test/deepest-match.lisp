@@ -56,14 +56,21 @@
         ((atom pat) pat)
         ((equal pat '(past be.v)) 'was.v)
         (t (mapcar #'local-conj! pat))))
+    (defun action-verb? (x)
+      (member x '(move.v)))
 
     (setf inf-rule
           (list '/
                 (list term-pattern pred-pattern)
                 '(!1 (local-conj! !2))))
 
-    (assert-false (equal good-inf (apply-rules (list inf-rule) sentence :max-n 1000
+    (assert-false (equal good-inf (apply-rules (list inf-rule) sentence :max-n 100
                                            :rule-order :slow-forward)))
-    (assert-equal good-inf (apply-rules (list inf-rule) sentence :max-n 1000
-                                           :rule-order :slow-forward :rule-depth :deepest))))
+    (assert-equal good-inf (apply-rules (list inf-rule) sentence :max-n 100
+                                           :rule-order :slow-forward :rule-depth :deepest))
+    (assert-equal 'move.v
+                  (apply-rules '((/ (^* action-verb?) action-verb?))
+                               '((SUB ((NQUAN (HOW.MOD-A MANY.A)) (PLUR BLOCK.N))
+                                      ((PAST DO.AUX-S) I.PRO (MOVE.V *H))) ?)
+                               :shallow t))))
 
