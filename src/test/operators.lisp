@@ -24,5 +24,30 @@
     
     (assert-false (ttt:match-expr pattern '(A B (C D) F)))
     (assert-false (ttt:match-expr pattern '(A B (D E) F)))
+    (assert-false (ttt:match-expr pattern '(C D E))))
+
+  (let ((pattern '(^@ _! (<> (C D E)) E)))
+    (assert-true (ttt:match-expr pattern '(A B (C D E) F)))
+    (assert-true (ttt:match-expr pattern '(B (C D E) F)))
+    (assert-true (ttt:match-expr pattern '(A B (C D E))))
+    
+    (assert-false (ttt:match-expr pattern '(A B (D C E))))
+    (assert-false (ttt:match-expr pattern '(A B (C E) F)))
+    (assert-false (ttt:match-expr pattern '(A B (C D) F)))
+    (assert-false (ttt:match-expr pattern '(A B (D E) F)))
+    (assert-false (ttt:match-expr pattern '(C D E))))
+
+  (let ((pattern '(^@ _! (({} C D E)) E)))
+    (assert-true (ttt:match-expr pattern '(A B (C D E) F)))
+    (assert-true (ttt:match-expr pattern '(B (C D E) F)))
+    (assert-true (ttt:match-expr pattern '(A B (C D E))))
+    (assert-true (ttt:match-expr pattern '(A B (D C E))))
+    
+    (assert-false (ttt:match-expr pattern '(A B (C E) F)))
+    (assert-false (ttt:match-expr pattern '(A B (C D) F)))
+    (assert-false (ttt:match-expr pattern '(A B (D E) F)))
     (assert-false (ttt:match-expr pattern '(C D E)))))
+
+
+
 
