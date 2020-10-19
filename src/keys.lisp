@@ -47,7 +47,7 @@
 (declaim (ftype (function ((or list symbol number)) list) filter-ops))
 
 
-(defun extract-keys (pattern &key (with-ops t) (no-dups t) (maxdepth 2))
+(defun extract-keys (pattern &key (with-ops nil) (no-dups t) (maxdepth 2))
   "return a list of keys, where each key is a cons of the form
   (token . depth)
   => (extract-keys 'X)
