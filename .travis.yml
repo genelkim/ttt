@@ -52,8 +52,8 @@ cache:
     - $HOME/.roswell
 
 script:
-  - if [[ "$LISP" == "sbcl" ]]; then
-    ros -s cl-coveralls -e '(or (coveralls:with-coveralls (:exclude (cons "tests.lisp" (directory "test/*.lisp")))
+  - cd src; if [[ "$LISP" == "sbcl" ]]; then
+      ros -s cl-coveralls -e '(or (coveralls:with-coveralls (:exclude (cons "tests.lisp" (directory "test/*.lisp")))
                                     (load "run-tests"))
                                   (uiop:quit -1))';
     else
