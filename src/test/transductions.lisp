@@ -5,6 +5,12 @@
 (defun lex-tense? (x) (member x '(pres past)))
 (defun tense-or-aspect? (x) (member x '(pres past perf)))
 
+(define-test tiny-rules
+  (:tag :transductions)
+  ;; Tiny rule application tests for testing debug functionality.
+  (assert-equal 'c (ttt:apply-rule '(/ a c) 'a))
+  (assert-equal 'c (ttt:apply-rules '((/ a c)) 'a)))
+
 (define-test apply-rule
   (:tag :transductions :apply-rule)
 
