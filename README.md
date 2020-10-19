@@ -1,6 +1,7 @@
 # TTT (Tree-to-Tree Transduction Language)
 
 [![Build Status](https://travis-ci.com/genelkim/ttt.svg?branch=master)](https://travis-ci.com/genelkim/ttt)
+[![Coverage Status](https://coveralls.io/repos/github/genelkim/ttt/badge.svg?branch=master)](https://coveralls.io/github/genelkim/ttt?branch=master)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 My personal copy of the TTT library.
