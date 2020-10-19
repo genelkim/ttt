@@ -5,9 +5,13 @@ env:
     - PATH=~/.roswell/bin:$PATH
     - ROSWELL_INSTALL_DIR=$HOME/.roswell
   matrix:
-    - LISP=sbcl
-    - LISP=sbcl32
+    - LISP=sbcl COVERALLS=true
     - LISP=allegro
+#    - LISP=abcl
+#    - LISP=ccl-bin
+#    - LISP=clisp
+#    - LISP=cmu-bin
+#    - LISP=ecl
       #- LISP=allegromodern
       #- LISP=abcl
       #- LISP=ccl
