@@ -36,6 +36,7 @@
   :depends-on (:ttt :lisp-unit)
   :components ((:file "test/package")
                (:file "tests")
-               (:file "test/deepest-match"))
+               (:file "test/deepest-match")
+               (:file "test/transductions"))
   :perform (test-op (o c) (symbol-call :ttt/tests :run)))
 
