@@ -37,6 +37,10 @@
   :components ((:file "test/package")
                (:file "tests")
                (:file "test/deepest-match")
-               (:file "test/transductions"))
+               (:file "test/transductions")
+               (:file "test/operators")
+               (:file "test/templates")
+               (:file "test/predicates")
+               (:file "test/patterns"))
   :perform (test-op (o c) (symbol-call :ttt/tests :run)))
 

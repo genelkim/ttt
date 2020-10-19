@@ -53,6 +53,7 @@
   (run-tests)
 
   (format t "New unit tests...")
+  (setf ttt::*subst-new-next-int* 0)
   (let ((*print-failures* print-failures)
         (*print-errors* print-errors)
         (*print-summary* print-summary)
