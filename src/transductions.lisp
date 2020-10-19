@@ -255,6 +255,16 @@
         (n 0))
     (declare (type fixnum n max-n)
              (type stream trace-file))
+    (when (> *ttt-debug-level* 0)
+      (progn
+        (format t "===apply-rule===~%")
+        (format t "rule-expr:     ~s~%" rule-expr)
+        (format t "tree-expr: ~s~%" tree-expr)
+        (format t "tr: ~s~%" tr)
+        (format t "compiled-rule: ~s~%" (to-expr compiled-rule))
+        (format t "~%")
+        ))
+
     (let* ((bs (get-matches compiled-rule tr rule-depth))
            b)
       (loop while (and (not converged) bs (car bs) (< n max-n)) do
