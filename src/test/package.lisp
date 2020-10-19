@@ -47,6 +47,7 @@
   "
 
   (format t "Original TTT tests...~%")
+  (clear-tests)
   (load-tests-all)
   (compile-tests)
   (run-tests)
