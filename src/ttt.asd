@@ -39,6 +39,7 @@
                (:file "test/deepest-match")
                (:file "test/transductions")
                (:file "test/operators")
-               (:file "test/templates"))
+               (:file "test/templates")
+               (:file "test/predicates"))
   :perform (test-op (o c) (symbol-call :ttt/tests :run)))
 

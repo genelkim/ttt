@@ -62,8 +62,12 @@
 
 
 (defun mk-pred-ttt (pred-op patt-expr)
+  "Defines a predicate function within the TTT package. The predicate operator
+  will be interned to TTT and lose the package it is in when called. TODO: make
+  a version that is more general to other packages."
   (let ((pred (make-instance 'predicate-patt))
-        (pat (build-pattern patt-expr)))
+        (pat (build-pattern patt-expr))
+        (pred-op (intern (string pred-op) :ttt)))
     (setf (patt pred) pat)
     (setf (match-fn pred)
           (lambda (tree)

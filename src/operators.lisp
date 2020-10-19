@@ -40,7 +40,7 @@
 (defun get-op (sym)
   "Return the operation associated with sym.
    If sym is a variable then return the symbol which corresponds
-   to the variable with additional binding  information stripped.
+   to the variable with additional binding information stripped.
    The operation is stored in sym's property list to avoid
    future textual searching. If sym is a list or represents a literal then
    return nil."
