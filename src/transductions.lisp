@@ -250,31 +250,48 @@
                             :direction :output
                             :if-exists :append
                             :if-does-not-exist :create)))
-        (prev tree-expr)
+        (prevs (list tree-expr))
         (converged nil)
         (n 0))
     (declare (type fixnum n max-n)
              (type stream trace-file))
+    (when (> *ttt-debug-level* 0)
+      (progn
+        (format t "===apply-rule===~%")
+        (format t "rule-expr:     ~s~%" rule-expr)
+        (format t "tree-expr: ~s~%" tree-expr)
+        (format t "tr: ~s~%" tr)
+        (format t "compiled-rule: ~s~%" (to-expr compiled-rule))
+        (format t "prevs: ~s~%" prevs)
+        (format t "~%")
+        ))
+
     (let* ((bs (get-matches compiled-rule tr rule-depth))
            b)
       (loop while (and (not converged) bs (car bs) (< n max-n)) do
            (setf b (car bs))
            (setf bs (cdr bs))
            (setf tr (do-transduction tr (get-binding '/ b) b))
-           (if trace (format trace-file "~a~%~a~%~%" prev (to-expr tr)))
+           (if trace (format trace-file "~a~%~a~%~%" (car prevs) (to-expr tr)))
+            (when (> *ttt-debug-level* 0)
+              (progn
+                (format t "tr: ~s~%" (to-expr tr))
+                (format t "prevs: ~s~%" prevs)
+                (format t "b: ~s~%" b)))
            (incf n)
            (cond
              ;; New value, so update.
-             ((not (equal prev (to-expr tr)))
-              (setf bs (append bs (get-matches compiled-rule tr rule-depth))
-                    prev (to-expr tr)))
+             ((not (member (to-expr tr) prevs :test #'equal))
+              (push (to-expr tr) prevs)
+              (setf bs (append bs (get-matches compiled-rule tr rule-depth))))
              ;; No new value and not deepest so got to a stopping point.
              ((not (eql rule-depth :deepest))
               (setf converged t))
              )))
     (if (and trace-file (not (eq trace-file *standard-output*)))
       (close trace-file))
-    (to-expr tr)))
+    ;; Return the last novel state.
+    (pop prevs)))
 
 
 (defun do-transduction (tree t-binding bindings)
@@ -284,7 +301,7 @@
    (if (> *ttt-debug-level* 0)
     (progn
       (format t "===do-transduction===~%")
-      (format t "tree:      ~s~%" tree)
+      (format t "tree:      ~s~%" (to-expr tree))
       (format t "t-binding: ~s~%" t-binding)
       (format t "bindings:  ~s~%~%" bindings)))
   (let ((new-subtree-raw
@@ -326,11 +343,10 @@
          (loop while ancestor do
               (setf (to-expr ancestor)
                     (mapcar
-
                      #'to-expr
                      (children ancestor)))
               (setf (keys ancestor)  ;; not the most efficient
-                    (extract-keys (to-expr ancestor) :no-ops t))
+                    (extract-keys (to-expr ancestor) :with-ops t))
               (setf ancestor (parent ancestor))))
        )))
   (update-subtree-index tree) ;; not the most efficient

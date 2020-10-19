@@ -23,7 +23,7 @@
    be called once per tree expression to be matched.
    (Eg., 25k times for Brown, 5m times for BNC)"
   (let ((node (make-instance 'tree)))
-    (setf (keys node) (extract-keys expression :no-ops t))
+    (setf (keys node) (extract-keys expression :with-ops t))
     (setf (to-expr node) expression)
     (if (atom expression)
         (setf (children node) expression

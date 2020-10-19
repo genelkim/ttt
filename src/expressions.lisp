@@ -6,7 +6,7 @@
   "Given patt = '(op X1 X1 ... Xm ~ Y1 Y2 ... Yn) return '(Y1 Y2 ... Yn)"
   (declare (type list expression))
   ; intern any atomic symbols so it matches with '~ declared here.
-  (let* ((symbol-interned 
+  (let* ((symbol-interned
            (mapcar #'(lambda (x) (if (symbolp x) (intern (symbol-name x) :ttt) x))
                    expression))
          (pos (position '~ symbol-interned)))
@@ -186,7 +186,7 @@
       (get-var expression))))
 
 (declaim (ftype (function ((or list symbol number)) list) filter-ops))
-(defun filter-ops (expression)
+(defun filter-ops (expression &optional (maxdepth most-positive-fixnum))
   "return filter-ops + finite-required-sets-of-ors for the same depth
 
    => (filter-ops   '((! PP-IN PP-WITH) _*))
@@ -225,20 +225,31 @@
 
    => (filter-ops '(X Y))
    ((X Y))
-   could extend to filter-all - return ALL such sets to any depth"
+   could extend to filter-all - return ALL such sets to any depth
 
+   maxdepth stops this process at a specific depth. If an operator set includes
+   subtrees beyond the depth, the whole pattern is omitted.
+   "
+  (when (< maxdepth 0)
+    (return-from filter-ops nil))
   (if (atom expression)
       (if (not (or (eq (get-op expression) 'literal) (numberp expression)))
           (keys-to-filter-ops (get expression 'pred-keys))  ;; for predicates
           (list expression))
       (case (get-op (car expression))
         ((+ !)
-         (unless (member nil (mapcar #'filter-ops (rest expression)))
-           (reduce #'append (mapcar #'filter-ops (rest expression)))))
-        ((^@ /) (filter-ops (nth 1 expression)))
+         (unless (member nil (mapcar #'(lambda (x) (filter-ops x (1- maxdepth)))
+                                     (rest expression)))
+           (reduce #'append (mapcar #'(lambda (x) (filter-ops x (1- maxdepth)))
+                                    (rest expression)))))
+        ((^@ /) (filter-ops (nth 1 expression) (1- maxdepth)))
         ((* ? ^ ^*) nil)
-        ((<> {}) (reduce #'append (mapcar #'filter-ops expression)))
-        (otherwise (list (reduce #'append (mapcar #'filter-ops expression)))))))
+        ((<> {}) (reduce #'append (mapcar #'(lambda (x) (filter-ops x (1- maxdepth)))
+                                          expression)))
+        (otherwise (let ((recres
+                           (reduce #'append (mapcar #'(lambda (x) (filter-ops x (1- maxdepth)))
+                                                    expression))))
+                     (if recres (list recres) recres))))))
 
 
 

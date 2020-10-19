@@ -1,12 +1,7 @@
 ;;; Gene Louis Kim, 4-6-2020
 ;;; Unit tests for verifying more exhaustive fix for apply.
 
-(in-package :ttt)
-
-(setq *print-failures* t)
-(setq *print-errors* t)
-(setq *print-summary* t)
-(setq *summarize-results* t)
+(in-package :ttt/tests)
 
 (define-test basic-deepest-match
   "Basic tests for deepest match."
@@ -64,8 +59,13 @@
                 (list term-pattern pred-pattern)
                 '(!1 (local-conj! !2))))
 
-    (assert-false (equal good-inf (apply-rules (list inf-rule) sentence :max-n 100
-                                           :rule-order :slow-forward)))
+    ; GK: Apparently fixing the key extraction algorithm made this inference work...
+    ; So now, we don't have a deepest match test. See that the test below works now.
+    ;(assert-false (equal good-inf (apply-rules (list inf-rule) sentence :max-n 100
+    ;                                       :rule-order :slow-forward)))
+    (assert-equal good-inf (apply-rules (list inf-rule) sentence :max-n 100
+                                        :rule-order :slow-forward))
+
     (assert-equal good-inf (apply-rules (list inf-rule) sentence :max-n 100
                                            :rule-order :slow-forward :rule-depth :deepest))
     (assert-equal 'move.v
