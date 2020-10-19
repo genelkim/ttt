@@ -336,11 +336,10 @@
          (loop while ancestor do
               (setf (to-expr ancestor)
                     (mapcar
-
                      #'to-expr
                      (children ancestor)))
               (setf (keys ancestor)  ;; not the most efficient
-                    (extract-keys (to-expr ancestor) :no-ops t))
+                    (extract-keys (to-expr ancestor) :with-ops t))
               (setf ancestor (parent ancestor))))
        )))
   (update-subtree-index tree) ;; not the most efficient

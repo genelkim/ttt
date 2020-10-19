@@ -47,7 +47,7 @@
 (declaim (ftype (function ((or list symbol number)) list) filter-ops))
 
 
-(defun extract-keys (pattern &key (no-ops nil) (no-dups t) (maxdepth 2))
+(defun extract-keys (pattern &key (with-ops t) (no-dups t) (maxdepth 2))
   "return a list of keys, where each key is a cons of the form
   (token . depth)
   => (extract-keys 'X)
@@ -78,70 +78,8 @@
             (if no-dups
               (delete-duplicates (append curres recres))
               (append curres recres))))
-         (t (error "Unknown recursive considition for extract-keys~%")))))
+         (t (error "Unknown recursive condition for extract-keys~%")))))
     (rechelper
-      (if no-ops (list pattern) (filter-ops pattern maxdepth)) ; tODO: this seems backwards.
+      (if with-ops (list pattern) (filter-ops pattern maxdepth))
       0)))
-
-;;; TODO: clean up this monstrosity of formatting code organization.
-;;;       it's really just an if statement with each clause containing
-;;;       a large append which should be factored into variables.
-;(defun extract-keys (pattern &key (no-ops nil) (no-dups t))
-;  "return a list of keys, where each key is a cons of the form
-;  (token . depth)
-;  => (extract-keys 'X)
-;  ((X . 0)
-;  => (extract-keys '(S (NP (NN He)) (VP (VBZ Ran)) (|.| |.|)))
-;  ((S . 1) (NP . 2)  (VP . 2) (|.| . 2))
-;  => (extract-keys '(<> X Y (S (NP (NN He)) (VP (VBZ Ran)) (|.|  |.|))))
-;  ((X . 0) (Y . 0) (S . 1) (NP . 2) (VP . 2) (|.| . 2))"
-;  (format t "======extract-keys=======~%")
-;  (format t "pattern: ~s~%" pattern)
-;  (labels
-;    ((clean-and-add-depth (depth lst)
-;       ; Remove nil and duplicates. Then add the depth level.
-;       (mapcar #'(lambda (x) (cons x depth))
-;               (let ((nonil (delete nil lst)))
-;                 ;; Remove duplicates if in argument.
-;                 (if no-dups
-;                   (delete-duplicates nonil)
-;                   nonil))))
-;     ) ; end of labels defn.
-;
-;    ; labels body.
-;    (let ((lvl0 (clean-and-add-depth
-;                  0
-;                  (mapcar
-;                    #'(lambda (x) (if (atom x) x))
-;                    (if no-ops (list pattern) (filter-ops pattern)))))
-;          (lvl1 (clean-and-add-depth
-;                  1
-;                  (the list
-;                       (reduce #'append
-;                               (mapcar
-;                                 (lambda (y) (if (listp y)
-;                                               (mapcar
-;                                                 (lambda (x)
-;                                                   (if (atom x) x)) y)))
-;                                 (if no-ops (list pattern) (filter-ops pattern)))))))
-;          (lvl2 (clean-and-add-depth
-;                  2
-;                  (the list
-;                       (reduce
-;                         #'append
-;                         (mapcar
-;                           (lambda (z)
-;                             (if (listp z)
-;                               (delete
-;                                 nil
-;                                 (the list
-;                                      (reduce
-;                                        #'append
-;                                        (mapcar
-;                                          (lambda (y) (if (listp y)
-;                                                        (mapcar
-;                                                          (lambda (x)
-;                                                            (if (atom x) x)) y))) z))))))
-;                           (if no-ops (list pattern) (filter-ops pattern))))))))
-;      (append lvl0 lvl1 lvl2))))
 
