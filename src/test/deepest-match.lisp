@@ -1,12 +1,7 @@
 ;;; Gene Louis Kim, 4-6-2020
 ;;; Unit tests for verifying more exhaustive fix for apply.
 
-(in-package :ttt)
-
-(setq *print-failures* t)
-(setq *print-errors* t)
-(setq *print-summary* t)
-(setq *summarize-results* t)
+(in-package :ttt/tests)
 
 (define-test basic-deepest-match
   "Basic tests for deepest match."

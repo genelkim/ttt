@@ -1,4 +1,4 @@
-(in-package :ttt)
+(in-package :ttt/tests)
 
 ;;     This was primarily used during inital development.
 ;;     It is certainly not comprehensive in testing combinations of pattern operators.
@@ -12,22 +12,26 @@
 ;;     when disp-counts is true, the overall pass/fail counts are displayed
 
 
-
 ;; 2011-12-13 - added sticky tests
 
 
 ;(format t "testing hasn't been completely rewritten for oo version")
 
+;; Test versions of TTT-internal functions.
+(defun to-expr (x)
+  (ttt::to-expr x))
+
+
 (defparameter *pattern-matching-tests*
   nil)
 (defun match-f (pattern tree)
-  (match pattern (list tree) t))
+  (ttt::match pattern (list tree) t))
 
 (defun compile-tests ()
   (let (tmp)
     (dolist (pair *pattern-matching-tests*)
-      (push (list (build-pattern (test-getpat pair))
-                  (build-tree (test-getexpr pair))
+      (push (list (ttt::build-pattern (test-getpat pair))
+                  (ttt::build-tree (test-getexpr pair))
                   (test-getbind pair))
             tmp))
     (setf *pattern-matching-tests* (nreverse tmp))))
