@@ -31,3 +31,22 @@
                                 '((some.d one.n) ((past be.v) (= (a.d person.n))))))
   )
 
+
+(define-test earliest-first
+  (:tag :transductions :apply-rules)
+  (let ((rules '((/ A B)
+                 (/ A D)
+                 (/ B C))))
+    (assert-equal '(C C C)
+                  (ttt:apply-rules rules '(A A A)
+                                   :max-n 100 :rule-order :earliest-first))))
+
+(define-test fast-forward
+  (:tag :transductions :apply-rules)
+  (let ((rules '((/ A B)
+                 (/ A D)
+                 (/ B C))))
+    (assert-equal '(C D C)
+                  (ttt:apply-rules rules '(A A A)
+                                   :max-n 100 :rule-order :fast-forward))))
+
