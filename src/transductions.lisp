@@ -58,6 +58,68 @@
                      (otherwise (error "Unknown rule-depth option: ~s~%" rule-depth)))))
     (if (equal raw-match '(nil)) nil raw-match)))
 
+
+(declaim (inline do-transduction))
+(defun do-transduction (tree t-binding bindings)
+  "Destructively modifies tree to implement the results of
+   a previously bound transduction operator.
+   Returns the modified tree."
+   (if (> *ttt-debug-level* 0)
+    (progn
+      (format t "===do-transduction===~%")
+      (format t "tree:      ~s~%" (to-expr tree))
+      (format t "t-binding: ~s~%" t-binding)
+      (format t "bindings:  ~s~%~%" bindings)))
+  (let ((new-subtree-raw
+         (template-to-tree (t-bind-template-expr t-binding) bindings t))
+        (par (t-bind-parent t-binding))
+        (par-idx (t-bind-parent-idx t-binding))
+        (fixnum-par-idx -1)
+        new-subtree)
+    (declare (type fixnum fixnum-par-idx)
+             (type list new-subtree-raw))
+    (if (not (= (length new-subtree-raw) 1))
+        (error "transduction rhs cannot return more than one tree.")
+        (setf new-subtree (build-tree (car new-subtree-raw) :index-subtrees t)))
+    (cond
+      ((null par) ;; replace root
+       (setf (children tree) (children new-subtree)
+             (nchildren tree) (nchildren new-subtree)
+             (to-expr tree) (to-expr new-subtree)
+             (height tree) (height new-subtree)
+             (keys tree) (keys new-subtree)
+             (parent tree) nil
+             (parent-idx tree) nil)
+       (dotimes (n (the fixnum (nchildren tree)))
+         (declare (type fixnum n))
+         (setf (parent (nth n (children tree))) tree
+               (parent-idx (nth n (children tree))) n)))
+      (t
+       (setf fixnum-par-idx par-idx)
+       (setf (parent new-subtree) par)
+       (setf (children par)
+             (append
+              (subseq (the list (children par)) 0 par-idx)
+              (cons
+               new-subtree
+               (subseq (the list (children par)) (1+ par-idx)))))
+       (dotimes (n (the fixnum (nchildren par)))
+         (setf (parent-idx (nth n (children par))) n))
+       (let ((ancestor par))
+         (loop while ancestor do
+              (setf (to-expr ancestor)
+                    (mapcar
+                     #'to-expr
+                     (children ancestor)))
+              (setf (keys ancestor)  ;; not the most efficient
+                    (extract-keys (to-expr ancestor) :with-ops t))
+              (setf ancestor (parent ancestor))))
+       )))
+  (update-subtree-index tree) ;; not the most efficient
+  (update-dfs-order tree)
+  tree)
+
+
 (defun apply-rules (rules tree-expr &key
                                       (rule-order :slow-forward)
                                       (trace nil)
@@ -292,64 +354,4 @@
       (close trace-file))
     ;; Return the last novel state.
     (pop prevs)))
-
-
-(defun do-transduction (tree t-binding bindings)
-  "Destructively modifies tree to implement the results of
-   a previously bound transduction operator.
-   Returns the modified tree."
-   (if (> *ttt-debug-level* 0)
-    (progn
-      (format t "===do-transduction===~%")
-      (format t "tree:      ~s~%" (to-expr tree))
-      (format t "t-binding: ~s~%" t-binding)
-      (format t "bindings:  ~s~%~%" bindings)))
-  (let ((new-subtree-raw
-         (template-to-tree (t-bind-template-expr t-binding) bindings t))
-        (par (t-bind-parent t-binding))
-        (par-idx (t-bind-parent-idx t-binding))
-        (fixnum-par-idx -1)
-        new-subtree)
-    (declare (type fixnum fixnum-par-idx)
-             (type list new-subtree-raw))
-    (if (not (= (length new-subtree-raw) 1))
-        (error "transduction rhs cannot return more than one tree.")
-        (setf new-subtree (build-tree (car new-subtree-raw) :index-subtrees t)))
-    (cond
-      ((null par) ;; replace root
-       (setf (children tree) (children new-subtree)
-             (nchildren tree) (nchildren new-subtree)
-             (to-expr tree) (to-expr new-subtree)
-             (height tree) (height new-subtree)
-             (keys tree) (keys new-subtree)
-             (parent tree) nil
-             (parent-idx tree) nil)
-       (dotimes (n (the fixnum (nchildren tree)))
-         (declare (type fixnum n))
-         (setf (parent (nth n (children tree))) tree
-               (parent-idx (nth n (children tree))) n)))
-      (t
-       (setf fixnum-par-idx par-idx)
-       (setf (parent new-subtree) par)
-       (setf (children par)
-             (append
-              (subseq (the list (children par)) 0 par-idx)
-              (cons
-               new-subtree
-               (subseq (the list (children par)) (1+ par-idx)))))
-       (dotimes (n (the fixnum (nchildren par)))
-         (setf (parent-idx (nth n (children par))) n))
-       (let ((ancestor par))
-         (loop while ancestor do
-              (setf (to-expr ancestor)
-                    (mapcar
-                     #'to-expr
-                     (children ancestor)))
-              (setf (keys ancestor)  ;; not the most efficient
-                    (extract-keys (to-expr ancestor) :with-ops t))
-              (setf ancestor (parent ancestor))))
-       )))
-  (update-subtree-index tree) ;; not the most efficient
-  (update-dfs-order tree)
-  tree)
 

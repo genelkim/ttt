@@ -1,6 +1,7 @@
 (in-package :ttt)
 (defparameter *built-patterns* (make-hash-table :test #'equal))
 (defparameter *ttt-debug-level* 0)
+(declaim (type fixnum *ttt-debug-level*))
 
 (defclass pattern ()
   ((min-width :accessor min-width :initform 0 :initarg :min-width :type fixnum)
@@ -10,7 +11,7 @@
               :type fixnum)
    (min-height :accessor min-height :initform 0 :type fixnum)
    (max-height :accessor max-height :initform most-positive-fixnum :type fixnum)
-   (keys :accessor keys)
+   (keys :accessor keys :type list)
    (compiled? :accessor compiled? :initform nil :type t)
    (initialized? :accessor initialized? :initarg :initialized? :initform nil :type t)
    (to-expr :accessor to-expr :type (or list symbol number))
@@ -76,22 +77,11 @@
           (if (> *ttt-debug-level* 0)
               (format t "minWidth= ~s, maxWidth= ~s~%" (min-width pattern) (max-width pattern)))))))
 
-
-
-
-;(declaim (inline ensure-compiled))
-(defmethod ensure-compiled ((patt pattern))
-  (if (compiled? patt)
-      patt
-      (compile-pattern patt)))
-
-
-;(declaim (inline match))
 (defmethod match ((patt pattern) tree-seq bindings)
   "Generic method to match a compiled pattern against a sequence of trees"
   (if (> *ttt-debug-level* 0)
       (format t "match: [patt=~s,tree-seq=~s]~%" (to-expr patt) (mapcar #'to-expr tree-seq)))
-  (funcall (match-fn patt) tree-seq bindings))
+  (funcall (the function (match-fn patt)) tree-seq bindings))
 (defun match-expr (pattern-expr tree-expr &key (bind-form :hash-table))
   "Added because the suffix expr is more meaningful than encap."
   (match-encap pattern-expr tree-expr :bind-form bind-form))
@@ -134,9 +124,11 @@
    use keys to avoid matching when guaranteed to fail."
   (if (keys patt)
       (dolist (key (keys patt))
-        (dolist (subtree (fastmap key (to-subtrees tree)))
-          (if (and (>= (height subtree) (min-height patt))
-                   (<= (height subtree) (max-height patt)))
+        (dolist (subtree (fastmap key (the index (to-subtrees tree))))
+          (if (and (>= (the fixnum (height subtree))
+                       (the fixnum (min-height patt)))
+                   (<= (the fixnum (height subtree))
+                       (the fixnum (max-height patt))))
               (let ((b (match patt (list subtree) t )))
                 (if b (return-from deep-match b))))))
       (deep-match-brute patt tree )))
@@ -159,9 +151,11 @@
   (if (keys patt)
       (let (result)
         (dolist (key (keys patt))
-          (dolist (subtree (fastmap key (to-subtrees tree)))
-            (if (and (>= (height subtree) (min-height patt))
-                     (<= (height subtree) (max-height patt)))
+          (dolist (subtree (fastmap key (the index (to-subtrees tree))))
+            (if (and (>= (the fixnum (height subtree))
+                         (the fixnum (min-height patt)))
+                     (<= (the fixnum (height subtree))
+                         (the fixnum (max-height patt))))
               (let ((b (match patt (list subtree) t)))
                 (when b (push b result))))))
         (reverse result))

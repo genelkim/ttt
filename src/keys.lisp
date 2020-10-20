@@ -32,18 +32,26 @@
   (let ((new-index (make-instance 'index)))
     (setf (index new-index) (make-array 3))
     (loop for n from 0 to 2 do
-         (setf (aref (index new-index) n)
+         (setf (aref (the (simple-array hash-table *) (index new-index))
+                     n)
                (make-hash-table :test #'eq)))
     new-index))
-(defmethod fastmap (key (idx index))
+(declaim (inline fastmap))
+(defun fastmap (key idx)
   "used as an accessor by build-tree to reverse the list"
-  (gethash (car key) (aref (index idx) (cdr key))))
-(defmethod add-to-index (key value (idx index))
+  (gethash (the (or list symbol number) (car key))
+           (aref (the (simple-array hash-table *) (index idx))
+                 (the fixnum (cdr key)))))
+(declaim (inline add-to-index))
+(defun add-to-index (key value idx)
   "add key/value pair to index.  does not check for duplication of values.
    values may be stored in any order."
-  (push value (gethash (car key) (aref (index idx) (cdr key)))))
+  (push value (gethash (the (or list symbol number) (car key))
+                       (aref (the (simple-array hash-table *) (index idx))
+                             (the fixnum (cdr key))))))
 
 
+(declaim (inline extract-keys))
 (defun extract-keys (pattern &key (with-ops nil) (no-dups t) (maxdepth 2))
   "return a list of keys, where each key is a cons of the form
   (token . depth)
