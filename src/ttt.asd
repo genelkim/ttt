@@ -27,7 +27,8 @@
                  (:file "process-tb")
                  (:file "search-tb"))
     :around-compile (lambda (next)
-                      (proclaim '(optimize (debug 3) (safety 3) (space 1) (speed 3)))
+                      ; For development use (debug 3) (safety 3) (space 1) (speed 1)
+                      (proclaim '(optimize (debug 0) (safety 2) (space 1) (speed 3)))
                       (funcall next))
     :in-order-to ((test-op (test-op :ttt/tests))))
 
