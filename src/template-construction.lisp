@@ -25,7 +25,7 @@
                               (length
                                 (symbol-name (car template-expr)))))))
      (let ((template-fn (car template-expr)))
-       (declare (type function template-fn))
+       (declare (type (or symbol function) template-fn))
        (list
          (funcall
            (if return-expr #'identity #'build-tree)

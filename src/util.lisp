@@ -124,10 +124,10 @@
          ; count doesn't exceed max-per-tree.
          (apply #'append
                 (loop for (ltr lcount)
-                      of-type (list fixnum)
+                      of-type ((or list symbol number) fixnum)
                       in lrec collect
                       (loop for (rtr rcount)
-                            of-type (list fixnum)
+                            of-type ((or list symbol number) fixnum)
                             in rrec
                             when (<= (the fixnum (+ lcount rcount))
                                      max-per-tree)
