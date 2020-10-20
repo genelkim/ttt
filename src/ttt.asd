@@ -1,8 +1,8 @@
-(defpackage :ttt)
 (asdf:defsystem :ttt
-    :name "Tree-to-Tree Transduction"
+    :name "Tree-to-Tree Transduction Language"
     :serial t
     :version "2.0.0"
+    :description "A language for transparent modifications of s-expression based trees."
     :author "Adam Purtee and Gene Louis Kim <gkim21@cs.rochester.edu>"
     :license "GPLv3"
     :depends-on ()

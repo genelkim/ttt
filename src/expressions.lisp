@@ -185,7 +185,7 @@
     (unless (op-requires-args? op)
       (get-var expression))))
 
-(declaim (ftype (function ((or list symbol number)) list) filter-ops))
+(declaim (ftype (function ((or list symbol number) &optional fixnum) (values list &optional)) filter-ops))
 (defun filter-ops (expression &optional (maxdepth most-positive-fixnum))
   "return filter-ops + finite-required-sets-of-ors for the same depth
 

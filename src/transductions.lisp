@@ -178,15 +178,15 @@
               (let* ((bs (get-matches r tr rule-depth))
                      (b (car bs)))
                 (when b
-                  (setf prev (to-expr tr))
                   (setf tr (do-transduction tr (get-binding '/ b) b))
                   (if trace
                       (format trace-file "~a~%~a~%~a~%~%"
                               (to-expr r)
-                              prev
+                              (car prevs)
                               (to-expr tr)))
-                  (if (not (equal prev (to-expr tr)))
-                      (setf converged nil))
+                  (when (not (member (to-expr tr) prevs :test #'equal))
+                      (setf converged nil)
+                      (push (to-expr tr) prevs))
                   (return))))))
 
 
@@ -197,15 +197,15 @@
               (let* ((bs (get-matches r tr rule-depth))
                      (b (car bs)))
                 (when b
-                  (setf prev (to-expr tr))
                   (setf tr (do-transduction tr (get-binding '/ b) b))
                   (if trace
                       (format trace-file "~a~%~a~%~a~%~%"
                               (to-expr r)
-                              prev
+                              (car prevs)
                               (to-expr tr)))
-                  (if (not (equal prev (to-expr tr)))
-                      (setf converged nil)))))))
+                  (when (not (member (to-expr tr) prevs :test #'equal))
+                      (setf converged nil)
+                      (push (to-expr tr) prevs)))))))
 
       (otherwise (error "unrecognized option for rule-order")))
 
@@ -324,7 +324,7 @@
              (keys tree) (keys new-subtree)
              (parent tree) nil
              (parent-idx tree) nil)
-       (dotimes (n (nchildren tree))
+       (dotimes (n (the fixnum (nchildren tree)))
          (declare (type fixnum n))
          (setf (parent (nth n (children tree))) tree
                (parent-idx (nth n (children tree))) n)))
@@ -333,11 +333,11 @@
        (setf (parent new-subtree) par)
        (setf (children par)
              (append
-              (subseq (children par) 0 par-idx)
+              (subseq (the list (children par)) 0 par-idx)
               (cons
                new-subtree
-               (subseq (children par) (1+ par-idx)))))
-       (dotimes (n (nchildren par))
+               (subseq (the list (children par)) (1+ par-idx)))))
+       (dotimes (n (the fixnum (nchildren par)))
          (setf (parent-idx (nth n (children par))) n))
        (let ((ancestor par))
          (loop while ancestor do

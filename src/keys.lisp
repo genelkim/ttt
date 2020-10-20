@@ -26,9 +26,8 @@
 ;; may require computation of complete conflict sets and sorting of
 ;; testable subtrees by dfs-order
 
-(declaim (ftype (function (index) (simple-array hash-table *)) index))
 (defclass index ()
-    ((index :accessor index)))
+  ((index :type (simple-array hash-table *) :accessor index)))
 (defun make-index ()
   (let ((new-index (make-instance 'index)))
     (setf (index new-index) (make-array 3))
@@ -44,8 +43,6 @@
    values may be stored in any order."
   (push value (gethash (car key) (aref (index idx) (cdr key)))))
 
-(declaim (ftype (function ((or list symbol number)) list) filter-ops))
-
 
 (defun extract-keys (pattern &key (with-ops nil) (no-dups t) (maxdepth 2))
   "return a list of keys, where each key is a cons of the form
@@ -59,8 +56,10 @@
 
   This was re-implemented for better factoring and to eliminate
   the depth 2 limit."
+  (declare (type fixnum maxdepth))
   (labels
     ((rechelper (pat depth)
+       (declare (type fixnum depth))
        (cond
          ((> depth maxdepth) nil)
          ((atom pat) nil)
@@ -77,8 +76,7 @@
                                            (remove-if-not #'atom pat)))))
             (if no-dups
               (delete-duplicates (append curres recres))
-              (append curres recres))))
-         (t (error "Unknown recursive condition for extract-keys~%")))))
+              (append curres recres)))))))
     (rechelper
       (if with-ops (list pattern) (filter-ops pattern maxdepth))
       0)))

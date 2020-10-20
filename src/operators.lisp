@@ -84,7 +84,7 @@
   (list #\! #\* #\+ #\_ #\? #\^ #\< #\> #\{ #\} #\@ #\Space))
 (defun valid-op-suffix (string)
   "Added so that ** isn't parsed as an operator with suffix *"
-  (declare (type string string))
+  (declare (type simple-string string))
   (loop for n from 0 to (1- (length string)) do
        (if (member (char string n) *invalid-suffix-chars*)
            (return-from valid-op-suffix nil)))

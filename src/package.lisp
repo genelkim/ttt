@@ -1,4 +1,4 @@
-(defpackage ttt
+(defpackage :ttt
   (:documentation "the TTT (template to template transduction) package!")
   (:use :cl)
   (:shadow :run-tests)

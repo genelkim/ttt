@@ -111,21 +111,28 @@
 ;  -> '((B A A) (A B A) (A A B)) '(1 1 1)
 ; (ttt-apply-rule-possibilities '(/ A B) '(A A A) :max-per-tree 3 :min-per-tree 3)
 ;  -> '((B B B)) '(3)
-;
+  (declare (type fixnum min-per-tree max-per-tree))
   (labels
     (;; Smaller recursive call used by 'helper'
      ;; Recurses into tr, car and cdr, with 'helper' function and combines them
      ;; while keeping track of count. Assumes that 'tr' is a tree.
      (carcdr-rec (tr apply-count)
+       (declare (type fixnum apply-count))
        (let ((lrec (helper (car tr) apply-count))
              (rrec (helper (cdr tr) apply-count)))
          ; For every combination of lrec and rrec, combine if their combined
          ; count doesn't exceed max-per-tree.
          (apply #'append
-                (loop for (ltr lcount) in lrec collect
-                      (loop for (rtr rcount) in rrec
-                            when (<= (+ lcount rcount) max-per-tree)
-                            collect (list (cons ltr rtr) (+ lcount rcount)))))))
+                (loop for (ltr lcount)
+                      of-type (list fixnum)
+                      in lrec collect
+                      (loop for (rtr rcount)
+                            of-type (list fixnum)
+                            in rrec
+                            when (<= (the fixnum (+ lcount rcount))
+                                     max-per-tree)
+                            collect (list (cons ltr rtr)
+                                          (the fixnum (+ lcount rcount))))))))
 
      ;; Helper function doing the heavy lifting.
      ;; Returns the possibilities of applying the rule to a tr, with counts of
@@ -136,6 +143,8 @@
      ;;  apply-count: 0
      ;;  -> '(((A A) 0) ((B A) 1) ((A B) 1) ((B B) 2))
      (helper (tr apply-count)
+       (declare (type (or list symbol number) tr)
+                (type fixnum apply-count))
        (cond
          ;; Base case, just return the tree in a list.
          ((or (>= apply-count max-per-tree) (null tr))
@@ -143,16 +152,16 @@
          ;; Base case 2, not a list. Try to apply rule. Return results.
          ((not (listp tr))
           (let ((result (ttt:apply-rule rule tr :shallow t :max-n 1)))
-          (append (list (list tr apply-count))
-                  (if (and (not (equal result tr)) (not (null result)))
-                    (list (list result (1+ apply-count)))))))
+            (declare (type (or list symbol number) result))
+            (append (list (list tr apply-count))
+                    (if (and (not (equal tr result)) (not (null result)))
+                      (list (list result (1+ apply-count)))))))
          ;; Return a non-modified tr, tr with rule applied to it shallowly (if different from tr),
          ;; and the version where we recurse into both tr and the modified one.
          (t
-           (let* (
-                  (result (ttt:apply-rule rule tr :shallow t :max-n 1))
-                  (retval (list (list tr apply-count)))
-                  cur-n-count cur-rec applied-n-count applied-rec)
+           (let* ((result (ttt:apply-rule rule tr :shallow t :max-n 1))
+                  cur-rec applied-n-count applied-rec)
+             (declare (type (or list symbol number) result))
              ;; Add result to return value and recurse into result.
              (when (and (not (equal tr result)) (not (null result)))
                (setf applied-n-count (list (list result (1+ apply-count))))
@@ -164,12 +173,12 @@
              (setf cur-rec (carcdr-rec tr apply-count))
              (append cur-rec applied-n-count applied-rec)))))
      ) ; end of labels defs.
-
     ;; Main body.
     ;; Call helper function and filter results.  max-per-tree is handled in the
     ;; recursive function so we don't compute more than necessary.
     (let ((helper-res
-            (remove-if #'(lambda (x) (< (second x) min-per-tree))
+            (remove-if #'(lambda (x)
+                           (< (the fixnum (second x)) min-per-tree))
                        (helper tree 0))))
       (values (mapcar #'first helper-res)
               (mapcar #'second helper-res)))))
