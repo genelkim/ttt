@@ -4,8 +4,8 @@
 [![Coverage Status](https://coveralls.io/repos/github/genelkim/ttt/badge.svg?branch=master)](https://coveralls.io/github/genelkim/ttt?branch=master)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-This is the copy of TTT maintained by Gene Louis Kim, primarily for SBCL. The library was originally written by Adam Purtee, accompanied by the paper 
-[TTT: A tree transduction language for syntactic and semantic processing](http://aclweb.org/anthology/W12-0803). Being the primary user of this library, I now maintain it and make extensions as I find fit. TTT is a language for transparently mapping between tree structures expressed in s-expressions. At a high-level it fills same role for trees as regex for strings. See the original README for a description of its use. The API has not changed, save for a few additional keyword arguments and additional utility functions.
+TTT is a language for transparently mapping between tree structures expressed in s-expressions. At a high-level it fills same role for trees as regex for strings. This is the copy of TTT maintained by Gene Louis Kim (<gkim21@cs.rochester.edu>), primarily for SBCL. The library was originally written by Adam Purtee, accompanied by the paper 
+[TTT: A tree transduction language for syntactic and semantic processing](http://aclweb.org/anthology/W12-0803). Being the primary user of this library, I now maintain it and make extensions as I see fit. See the original README(below) for how to use it. The API has not changed save for a few additional keyword arguments and some new utility functions. But ignore the details on how to load it. Rather, load the library with Quicklisp.
 ```
 Quick Summary of TTT features 
 -----------------------------
