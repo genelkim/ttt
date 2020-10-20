@@ -5,16 +5,11 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 TTT is a language for transparently mapping between tree structures expressed in s-expressions. At a high-level it fills same role for trees as regex for strings. This is the copy of TTT maintained by Gene Louis Kim (<gkim21@cs.rochester.edu>), primarily for SBCL. The library was originally written by Adam Purtee, accompanied by the paper 
-[TTT: A tree transduction language for syntactic and semantic processing](http://aclweb.org/anthology/W12-0803). Being the primary user of this library, I now maintain it and make extensions as I see fit. See the original README(below) for how to use it. The API has not changed save for a few additional keyword arguments and some new utility functions. But ignore the details on how to load it. Rather, load the library with Quicklisp.
+[TTT: A tree transduction language for syntactic and semantic processing](http://aclweb.org/anthology/W12-0803). Being the primary user of this library, I now maintain it and make extensions as I see fit. See a segment of the original README(below) for how to use it. The API has not changed save for a few additional keyword arguments and some new utility functions. First, load the library with Quicklisp `(ql:quickload :ttt)`.
 ```
 Quick Summary of TTT features 
 -----------------------------
-o Please contact Adam Purtee (apurtee@cs.rochester.edu) with questions/bugs. 
-
-To use TTT, first load it:
-(load "/p/nl/tools/ttt/src/load")
-
-Then switch to the package:
+Switch to the package:
 (in-package :ttt)
 
 To match a single pattern expression against a single tree expression, do: 
@@ -93,33 +88,6 @@ Example:
 
 If you define a predicate outside the TTT package, you must explictly 
 call ttt:store-pred afterward in order for TTT to be aware of it. 
-
-
-
-
-There are two command line level tools: 
----------------------------------------
-/p/nl/tools/ttt/scripts/apply   "RULE"     treebank-file
- o applies a single rule to the treebank-file and displays the output on stdout
-
-/p/nl/tools/ttt/scripts/search   "PATTERN"   treebank-file
- o deeply searches the treebank-file for matches to pattern, printing the results to stdout
-
-In both cases treebank-file should have one tree per line, as in charniak parser output. 
-
-Dan has a script that I use to flatten the .mrg files from the WSJ/Penn:
-~gildea/scripts/oneline_treebank.pl
-
-
-Notes:   
-o scripts/search can be used to search for matches to TTT patterns at the command line
-
-o scripts/apply can be used to apply TTT rules to a treebank at the command line
-  
-o For details on syntax, see file "syntax.txt"
-
-o To checkout the most recent version of the repository:
-svn co svn+ssh://USERNAME@YOURMACHINE/u/apurtee/svn-repos/ttt
 
 
 Ruleset syntax and example (for applying sets of rules):
