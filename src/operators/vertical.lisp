@@ -20,7 +20,15 @@
   binds
   (leading-vars nil))
 
+(declaim (inline ensure-compiled))
+(defun ensure-compiled (patt)
+  (declare (type pattern patt))
+  (if (compiled? patt)
+      patt
+      (compile-pattern patt)))
+
 (defmethod compile-pattern ((patt vertical-patt))
+  (declare (inline ensure-compiled))
   (when (not (initialized? patt))
     (if (patt-expr-neg-args (to-expr patt))
         (error

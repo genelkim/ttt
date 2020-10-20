@@ -65,6 +65,7 @@
   "Defines a predicate function within the TTT package. The predicate operator
   will be interned to TTT and lose the package it is in when called. TODO: make
   a version that is more general to other packages."
+  (declare (type symbol pred-op))
   (let ((pred (make-instance 'predicate-patt))
         (pat (build-pattern patt-expr))
         (pred-op (intern (string pred-op) :ttt)))

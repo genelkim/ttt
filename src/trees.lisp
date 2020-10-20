@@ -10,9 +10,6 @@
    (parent :initform nil :accessor parent)
    (parent-idx :initform nil :accessor parent-idx)
    (dfs-order :accessor dfs-order)))
-(declaim (ftype (function (tree) fixnum) height nchildren)
-         (ftype (function (tree) (or list symbol number string)) to-expr)
-         (ftype (function (tree) (or list symbol number string)) children))
 
 (defmethod leaf? ((node tree))
   (not (consp (children node))))
@@ -42,7 +39,7 @@
                 (the fixnum
                      (1+ (the fixnum
                               (apply #'max (mapcar #'height (children node)))))))
-          (setf (nchildren node) (length (children node)))))
+          (setf (nchildren node) (length (the list (children node))))))
     (when root
       (let ((to-subtrees (if index-subtrees (make-index)))
             (dfs-order 0)

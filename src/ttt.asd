@@ -1,8 +1,8 @@
-(defpackage :ttt)
 (asdf:defsystem :ttt
-    :name "Tree-to-Tree Transduction"
+    :name "Tree-to-Tree Transduction Language"
     :serial t
     :version "2.0.0"
+    :description "A language for transparent modifications of s-expression based trees."
     :author "Adam Purtee and Gene Louis Kim <gkim21@cs.rochester.edu>"
     :license "GPLv3"
     :depends-on ()
@@ -26,6 +26,10 @@
                  (:file "util")
                  (:file "process-tb")
                  (:file "search-tb"))
+    :around-compile (lambda (next)
+                      ; For development use (debug 3) (safety 3) (space 1) (speed 1)
+                      (proclaim '(optimize (debug 0) (safety 2) (space 1) (speed 3)))
+                      (funcall next))
     :in-order-to ((test-op (test-op :ttt/tests))))
 
 (asdf:defsystem :ttt/tests
