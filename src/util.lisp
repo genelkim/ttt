@@ -1,6 +1,6 @@
 (in-package :ttt)
 
-(defun hide-ttt-ops (wff &optional (all-pkg nil))
+(defun hide-ttt-ops (expr &optional (all-pkg nil))
 ;; AUTHOR: Len Schubert 
 ;; Generalized by Gene Kim
 ;~~~~~~~~~~~~~~~~~~~~~~~~
@@ -8,7 +8,7 @@
 ; ones starting this way, which we may want to use in some patterns
 ; (e.g., in wff-patterns involving *, **, @, or ~), but can't
 ; because of their special meanings in TTT. We're assuming that
-; the wffs we want to process don't *already* contain symbols in
+; the exprs we want to process don't *already* contain symbols in
 ; square brackets, starting as above inside the brackets, and which
 ; shouldn't have the brackets removed when we ultimately "unhide"
 ; the hidden symbols in a formula.
@@ -20,9 +20,9 @@
 ;
   (let (str chars pkg)
        (declare (type list chars))
-       (cond ((symbolp wff)
-              (setf pkg (if all-pkg all-pkg (symbol-package wff)))
-              (setq str (string wff))
+       (cond ((symbolp expr)
+              (setf pkg (if all-pkg all-pkg (symbol-package expr)))
+              (setq str (string expr))
               (setq chars (coerce str 'list))
               (cond ((member (car chars) '(#\! #\+ #\? #\* #\@ #\~ #\/))
                      (intern (concatenate 'string "[" str "]") pkg))
@@ -30,66 +30,42 @@
                      (intern (concatenate 'string "[" str "]") pkg))
                     ((and (eq (car chars) #\<) (eq (second chars) #\>))
                      (intern (concatenate 'string "[" str "]") pkg))
-                    (t wff)))
-             ((atom wff) wff)
-             (t (cons (hide-ttt-ops (car wff) all-pkg)
-                      (hide-ttt-ops (cdr wff) all-pkg))))
+                    (t expr)))
+             ((atom expr) expr)
+             (t (cons (hide-ttt-ops (car expr) all-pkg)
+                      (hide-ttt-ops (cdr expr) all-pkg))))
  )); end of hide-ttt-ops
 
 
-(defun unhide-ttt-ops (wff &optional (all-pkg nil))
+(defun unhide-ttt-ops (expr &optional (all-pkg nil))
 ;; AUTHOR: Len Schubert 
 ;; Generalized by Gene Kim
 ;~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; Remove the square brackets that have been added around ttt symbols
-; in wff by 'hide-ttt-ops':
+; in expr by 'hide-ttt-ops':
 ;
  (let (str chars pkg)
       (declare (type list chars))
-      (cond ((symbolp wff)
-             (setf pkg (if all-pkg all-pkg (symbol-package wff)))
-             (setq str (string wff))
+      (cond ((symbolp expr)
+             (setf pkg (if all-pkg all-pkg (symbol-package expr)))
+             (setq str (string expr))
              (setq chars (coerce str 'list))
              (cond ((or (not (eq (car chars) #\[))
-                        (not (eq (car (last chars)) #\]))) wff)
+                        (not (eq (car (last chars)) #\]))) expr)
                    (t (setq chars (cdr (butlast chars)))
                       (setq str (coerce chars 'string))
-                      (cond ((null chars) wff)
+                      (cond ((null chars) expr)
                             ((member (car chars) '(#\! #\+ #\? #\* #\@ #\~ #\/))
                              (intern str pkg))
                             ((and (eq (car chars) #\{) (eq (second chars) #\}))
                              (intern str pkg))
                             ((and (eq (car chars) #\<) (eq (second chars) #\>))
                              (intern str pkg))
-                            (t wff)))))
-            ((atom wff) wff)
-            (t (cons (unhide-ttt-ops (car wff) all-pkg)
-                     (unhide-ttt-ops (cdr wff) all-pkg))))
+                            (t expr)))))
+            ((atom expr) expr)
+            (t (cons (unhide-ttt-ops (car expr) all-pkg)
+                     (unhide-ttt-ops (cdr expr) all-pkg))))
  )); end of unhide-ttt-ops
-
-
-;; copy of lispify-parser-output.lisp -- just to avoid having to load
-;; I did not write these two functions
-(defun lispify-parser-output (char-string)
-;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-; convert a sentence parse, as a string, to a LISP S-expression
-;
-  (read-from-string (preslash-unsafe-chars char-string)) )
-
-(defun preslash-unsafe-chars (char-string)
-;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-; Prefix "\" to unsafe characters # ` ' : ; , . \ | in 'aString'.
-;
-  (let ((chars (coerce char-string 'list)) result)
-       (dolist (ch chars)
-           (cond ((alphanumericp ch) (push ch result))
-                 ((member ch '(#\( #\) #\")) (push ch result)); unbalanced "
-                 ((member ch
-                   '(#\# #\` #\' #\: #\; #\, #\. #\\ #\|) )
-                  (push #\\ result) (push ch result) )
-                 (T (push ch result)) ))
-        (coerce (reverse result) 'string)
- )); end of preslash-unsafe-chars
 
 
 (defun ttt-all-rule-results (rule tree)
@@ -141,16 +117,8 @@
      ;; Recurses into tr, car and cdr, with 'helper' function and combines them
      ;; while keeping track of count. Assumes that 'tr' is a tree.
      (carcdr-rec (tr apply-count)
-       ;(princln "tr")
-       ;(princln tr)
-       ;(princln "apply-count")
-       ;(princln apply-count)
        (let ((lrec (helper (car tr) apply-count))
              (rrec (helper (cdr tr) apply-count)))
-         ;(princln "lrec")
-         ;(princln lrec)
-         ;(princln "rrec")
-         ;(princln rrec)
          ; For every combination of lrec and rrec, combine if their combined
          ; count doesn't exceed max-per-tree.
          (apply #'append
@@ -205,4 +173,28 @@
                        (helper tree 0))))
       (values (mapcar #'first helper-res)
               (mapcar #'second helper-res)))))
+
+
+;; copy of lispify-parser-output.lisp -- just to avoid having to load
+;; I did not write these two functions
+(defun lispify-parser-output (char-string)
+;^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+; convert a sentence parse, as a string, to a LISP S-expression
+;
+  (read-from-string (preslash-unsafe-chars char-string)) )
+
+(defun preslash-unsafe-chars (char-string)
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; Prefix "\" to unsafe characters # ` ' : ; , . \ | in 'aString'.
+;
+  (let ((chars (coerce char-string 'list)) result)
+       (dolist (ch chars)
+           (cond ((alphanumericp ch) (push ch result))
+                 ((member ch '(#\( #\) #\")) (push ch result)); unbalanced "
+                 ((member ch
+                   '(#\# #\` #\' #\: #\; #\, #\. #\\ #\|) )
+                  (push #\\ result) (push ch result) )
+                 (T (push ch result)) ))
+        (coerce (reverse result) 'string)
+ )); end of preslash-unsafe-chars
 

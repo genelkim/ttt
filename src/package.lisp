@@ -5,5 +5,10 @@
   (:export :match-expr
            :apply-rules
            :apply-rule
-           :store-pred))
+           :store-pred
+           ;; Utilities
+           :hide-ttt-ops
+           :unhide-ttt-ops
+           :ttt-all-rule-results
+           :ttt-apply-rule-possibilities))
 
