@@ -41,6 +41,7 @@
                (:file "test/operators")
                (:file "test/templates")
                (:file "test/predicates")
-               (:file "test/patterns"))
+               (:file "test/patterns")
+               (:file "test/util"))
   :perform (test-op (o c) (symbol-call :ttt/tests :run)))
 
