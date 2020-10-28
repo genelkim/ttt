@@ -76,6 +76,9 @@
 ;
 ; e.g. (ttt-all-rule-results '(/ (A _!) (B _!)) '(wow a (b) (a (ki (a ma)))))
 ;      -> ((b (ki (a ma))) (b ma))
+;
+; These inferences return exactly the consequent (without substituting for the
+; antecedent in the original formula).
   (let (result recurd)
     (setq result (ttt:apply-rule rule tree :shallow t :max-n 1))
     (cond
@@ -87,9 +90,11 @@
               (concatenate 'list
                            (ttt-all-rule-results rule (car tree))
                            (ttt-all-rule-results rule (cdr tree))))
-        (if (and result (not (equal result tree)))
-          (cons result recurd)
-          recurd))))) ; end of ttt-all-rule-results
+        (remove-duplicates
+          (if (and result (not (equal result tree)))
+            (cons result recurd)
+            recurd)
+          :test #'equal))))) ; end of ttt-all-rule-results
 
 
 (defun ttt-apply-rule-possibilities (rule tree &key (max-per-tree 1) (min-per-tree 0))
@@ -111,6 +116,9 @@
 ;  -> '((B A A) (A B A) (A A B)) '(1 1 1)
 ; (ttt-apply-rule-possibilities '(/ A B) '(A A A) :max-per-tree 3 :min-per-tree 3)
 ;  -> '((B B B)) '(3)
+;
+; These inferences are in-place, that is the result of the inference is
+; substituted back into the original formula for the antecedent expression.
   (declare (type fixnum min-per-tree max-per-tree))
   (labels
     (;; Smaller recursive call used by 'helper'
