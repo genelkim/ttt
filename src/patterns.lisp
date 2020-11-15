@@ -14,7 +14,7 @@
    (keys :accessor keys :type list)
    (compiled? :accessor compiled? :initform nil :type t)
    (initialized? :accessor initialized? :initarg :initialized? :initform nil :type t)
-   (to-expr :accessor to-expr :type (or list symbol number))
+   (to-expr :accessor to-expr :type (or list symbol number string))
    (match-fn :accessor match-fn :type function)
    (var :accessor var :initform nil :initarg :var))
   (:documentation

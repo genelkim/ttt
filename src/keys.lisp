@@ -39,14 +39,14 @@
 (declaim (inline fastmap))
 (defun fastmap (key idx)
   "used as an accessor by build-tree to reverse the list"
-  (gethash (the (or list symbol number) (car key))
+  (gethash (the (or list symbol number string) (car key))
            (aref (the (simple-array hash-table *) (index idx))
                  (the fixnum (cdr key)))))
 (declaim (inline add-to-index))
 (defun add-to-index (key value idx)
   "add key/value pair to index.  does not check for duplication of values.
    values may be stored in any order."
-  (push value (gethash (the (or list symbol number) (car key))
+  (push value (gethash (the (or list symbol number string) (car key))
                        (aref (the (simple-array hash-table *) (index idx))
                              (the fixnum (cdr key))))))
 

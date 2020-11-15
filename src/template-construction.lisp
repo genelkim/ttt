@@ -9,7 +9,7 @@
 (defun template-to-tree (template-expr bindings return-expr)
   "Build a new tree expression from template-expression and bindings.
    When return-expr is nil, a tree object is returned instead."
-  (declare (type (or list symbol number) template-expr))
+  (declare (type (or list symbol number string) template-expr))
   (if (> *ttt-debug-level* 0)
     (progn
       (format t "In template-to-tree: ~s~%" template-expr)
