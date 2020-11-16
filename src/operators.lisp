@@ -101,7 +101,7 @@
             (if (search "." (symbol-name op))
                 (setf (get op 'sticky) t)
                 (setf (get op 'sticky) nil))))))
-(declaim (ftype (function ((or list symbol number string)) (or null fixnum)) get-/n get-/m))
+(declaim (ftype (function (tree-expr) (or null fixnum)) get-/n get-/m))
 (defun get-/n (sym)
   (if (get-op sym)
       (get sym '/n)))

@@ -7,6 +7,7 @@
     :license "GPLv3"
     :depends-on ()
     :components ((:file "package")
+                 (:file "types")
                  (:file "operators")
                  (:file "expressions")
                  (:file "keys")
