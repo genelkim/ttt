@@ -1,8 +1,8 @@
 (in-package :ttt)
 ;; trees.lisp
 (defclass tree ()
-  ((children :accessor children :type (or list symbol number string))
-   (to-expr :accessor to-expr :type (or list symbol number string))
+  ((children :accessor children :type tree-expr)
+   (to-expr :accessor to-expr :type tree-expr)
    (nchildren :accessor nchildren :type fixnum)
    (height   :accessor height :type fixnum)
    (keys     :accessor keys)

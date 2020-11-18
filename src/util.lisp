@@ -132,10 +132,10 @@
          ; count doesn't exceed max-per-tree.
          (apply #'append
                 (loop for (ltr lcount)
-                      of-type ((or list symbol number) fixnum)
+                      of-type (tree-expr fixnum)
                       in lrec collect
                       (loop for (rtr rcount)
-                            of-type ((or list symbol number) fixnum)
+                            of-type (tree-expr fixnum)
                             in rrec
                             when (<= (the fixnum (+ lcount rcount))
                                      max-per-tree)
@@ -151,7 +151,7 @@
      ;;  apply-count: 0
      ;;  -> '(((A A) 0) ((B A) 1) ((A B) 1) ((B B) 2))
      (helper (tr apply-count)
-       (declare (type (or list symbol number) tr)
+       (declare (type tree-expr tr)
                 (type fixnum apply-count))
        (cond
          ;; Base case, just return the tree in a list.
@@ -160,7 +160,7 @@
          ;; Base case 2, not a list. Try to apply rule. Return results.
          ((not (listp tr))
           (let ((result (ttt:apply-rule rule tr :shallow t :max-n 1)))
-            (declare (type (or list symbol number) result))
+            (declare (type tree-expr result))
             (append (list (list tr apply-count))
                     (if (and (not (equal tr result)) (not (null result)))
                       (list (list result (1+ apply-count)))))))
@@ -169,7 +169,7 @@
          (t
            (let* ((result (ttt:apply-rule rule tr :shallow t :max-n 1))
                   cur-rec applied-n-count applied-rec)
-             (declare (type (or list symbol number) result))
+             (declare (type tree-expr result))
              ;; Add result to return value and recurse into result.
              (when (and (not (equal tr result)) (not (null result)))
                (setf applied-n-count (list (list result (1+ apply-count))))

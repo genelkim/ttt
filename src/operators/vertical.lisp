@@ -11,7 +11,7 @@
          (ftype (function (has-depth-constraints) fixnum) min-depth max-depth)
          (ftype (function (tree) fixnum) height)
          (ftype (function (pattern) function) match-fn)
-         (ftype (function (pattern) (or list symbol number)) to-expr)
+         (ftype (function (pattern) tree-expr) to-expr)
          (ftype (function ((or has-pos-args has-neg-args)) list) pos-args neg-args)
          (ftype (function (pattern) t) compiled? initialized?))
 (defstruct v-state
