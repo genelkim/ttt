@@ -60,7 +60,21 @@
                                                          :min-per-tree 3
                                                          :max-per-tree 3)
     (assert-equal '((B B B)) results)
-    (assert-equal '(3) counts)))
+    (assert-equal '(3) counts))
+  (multiple-value-bind (results counts)
+                       (ttt:ttt-apply-rule-possibilities '(/ (A B) C)
+                                                         '(C A B)
+                                                         :min-per-tree 1
+                                                         :max-per-tree 1)
+    (assert-equal '() results)
+    (assert-equal '() counts))
+  (multiple-value-bind (results counts)
+                       (ttt:ttt-apply-rule-possibilities '(/ (A B) C)
+                                                         '(C (A B))
+                                                         :min-per-tree 1
+                                                         :max-per-tree 1)
+    (assert-equal '((C C)) results)
+    (assert-equal '(1) counts)))
 
 
 (define-test lispify-parser-output

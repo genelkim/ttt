@@ -116,32 +116,40 @@
 ;  -> '((B A A) (A B A) (A A B)) '(1 1 1)
 ; (ttt-apply-rule-possibilities '(/ A B) '(A A A) :max-per-tree 3 :min-per-tree 3)
 ;  -> '((B B B)) '(3)
+; (ttt-apply-rule-possibilities '(/ (A B) C) '(C A B) :max-per-tree 1 :min-per-tree 1)
+;  -> '()
+; (ttt-apply-rule-possibilities '(/ (A B) C) '(C (A B)) :max-per-tree 1 :min-per-tree 1)
+;  -> '((C C))
 ;
 ; These inferences are in-place, that is the result of the inference is
 ; substituted back into the original formula for the antecedent expression.
   (declare (type fixnum min-per-tree max-per-tree))
   (labels
-    (;; Smaller recursive call used by 'helper'
+    (;; Combine a pair of loop recursive results.
+     (pair-rec-combine (lrec rrec)
+       ; For every combination of lrec and rrec, combine if their combined
+       ; count doesn't exceed max-per-tree.
+       (apply #'append
+              (loop for (ltr lcount)
+                    of-type (tree-expr fixnum)
+                    in lrec collect
+                    (loop for (rtr rcount)
+                          of-type (tree-expr fixnum)
+                          in rrec
+                          when (<= (the fixnum (+ lcount rcount))
+                                   max-per-tree)
+                          collect (list (append ltr (list rtr))
+                                        (the fixnum (+ lcount rcount)))))))
+     ;; Smaller recursive call used by 'helper'
      ;; Recurses into tr, car and cdr, with 'helper' function and combines them
      ;; while keeping track of count. Assumes that 'tr' is a tree.
-     (carcdr-rec (tr apply-count)
+     (loop-rec (tr apply-count)
        (declare (type fixnum apply-count))
-       (let ((lrec (helper (car tr) apply-count))
-             (rrec (helper (cdr tr) apply-count)))
-         ; For every combination of lrec and rrec, combine if their combined
-         ; count doesn't exceed max-per-tree.
-         (apply #'append
-                (loop for (ltr lcount)
-                      of-type (tree-expr fixnum)
-                      in lrec collect
-                      (loop for (rtr rcount)
-                            of-type (tree-expr fixnum)
-                            in rrec
-                            when (<= (the fixnum (+ lcount rcount))
-                                     max-per-tree)
-                            collect (list (cons ltr rtr)
-                                          (the fixnum (+ lcount rcount))))))))
-
+       (reduce #'(lambda (acc cur)
+                   (pair-rec-combine acc
+                                     (helper cur apply-count)))
+               tr
+               :initial-value (list (list nil 0))))
      ;; Helper function doing the heavy lifting.
      ;; Returns the possibilities of applying the rule to a tr, with counts of
      ;; how many times it was applied.
@@ -175,10 +183,10 @@
                (setf applied-n-count (list (list result (1+ apply-count))))
                (setf applied-rec
                      (if (< (1+ apply-count) max-per-tree)
-                       (carcdr-rec result (1+ apply-count)))))
+                       (loop-rec result (1+ apply-count)))))
 
              ;; Add current count, and recurse.
-             (setf cur-rec (carcdr-rec tr apply-count))
+             (setf cur-rec (loop-rec tr apply-count))
              (append cur-rec applied-n-count applied-rec)))))
      ) ; end of labels defs.
     ;; Main body.
