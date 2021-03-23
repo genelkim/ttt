@@ -87,9 +87,10 @@
                      nil))
       (t
         (setq recurd
-              (concatenate 'list
-                           (ttt-all-rule-results rule (car tree))
-                           (ttt-all-rule-results rule (cdr tree))))
+              (apply #'append
+                     (mapcar #'(lambda (subtree)
+                                 (ttt-all-rule-results rule subtree))
+                             tree)))
         (remove-duplicates
           (if (and result (not (equal result tree)))
             (cons result recurd)
