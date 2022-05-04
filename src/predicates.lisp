@@ -37,8 +37,12 @@
 
 (defparameter *predicate-table*
   (make-hash-table))
+;; Lock for predicate-table and other global predicate info.
+(defvar *predicate-lock* (bt:make-recursive-lock))
 (defun get-pred-instance (pred-op)
-  (let ((pred (gethash pred-op *predicate-table*)))
+  (let ((pred
+          (bt:with-recursive-lock-held (*predicate-lock*)
+            (gethash pred-op *predicate-table*))))
     (if pred (return-from get-pred-instance pred))
     (setf pred (make-instance 'predicate-patt))
     (setf (min-width pred) 1
@@ -82,11 +86,13 @@
     (setf (ttt-pred pred) t)
     (setf (get pred-op 'pred-keys) (keys pred))
     (add-op pred-op :predicate t)
-    (setf (gethash pred-op *predicate-table*) pred)))
+    (bt:with-recursive-lock-held (*predicate-lock*)
+      (setf (gethash pred-op *predicate-table*) pred))))
 
 
 (defun store-pred (symbol function)
-  (setf *built-patterns* (make-hash-table :test #'equal))
+  (bt:with-recursive-lock-held (*pattern-lock*)
+    (setf *built-patterns* (make-hash-table :test #'equal)))
   (setf (symbol-function symbol) function)
   (setf (get symbol 'op) symbol))
 

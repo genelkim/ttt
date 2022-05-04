@@ -5,7 +5,7 @@
     :description "A language for transparent modifications of s-expression based trees."
     :author "Adam Purtee and Gene Louis Kim <gkim21@cs.rochester.edu>"
     :license "GPLv3"
-    :depends-on ()
+    :depends-on (:bordeaux-threads)
     :components ((:file "package")
                  (:file "types")
                  (:file "operators")

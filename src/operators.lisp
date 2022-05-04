@@ -5,16 +5,19 @@
 
 (defparameter *operation-table* nil)
 (declaim (type list *operation-table*))
+;; Lock for all interactions with *operation-table* and (get op ...).
+(defvar *operator-lock* (bt:make-recursive-lock))
 
 (defun add-op (op &key (predicate) (requires-args))
   "Insert op into the operation table.  Associate the operation with match-fn.
    Optionally set predicate or requires-args booleans.  (both default to nil)"
   (declare (type symbol op))
-  (setf op (intern (string op) :ttt))
-  (setf (get op 'op) op)
-  (setf (get op 'predicate) predicate)
-  (setf (get op 'requires-args) requires-args)
-  (push op *operation-table*))
+  (bt:with-recursive-lock-held (*operator-lock*)
+    (setf op (intern (string op) :ttt))
+    (setf (get op 'op) op)
+    (setf (get op 'predicate) predicate)
+    (setf (get op 'requires-args) requires-args)
+    (push op *operation-table*)))
 
 
 (add-op '_!)
@@ -44,41 +47,42 @@
    The operation is stored in sym's property list to avoid
    future textual searching. If sym is a list or represents a literal then
    return nil."
-  (cond ((consp sym) nil)
-        ((numberp sym) 'literal)
-        ((get sym 'op) (get sym'op))
-        (t
-         (when (op-is-pred? sym)
-           (setf (get sym 'op) sym)
-           (return-from get-op sym))
-         (loop for i from 1 to (min 2 (length (symbol-name sym))) do
-              (let* ((temp-op (intern (subseq (symbol-name sym) 0 i) :ttt)))
-                (when (and (get temp-op 'op)
-                           (valid-op-suffix (subseq (symbol-name sym) i)))
-                  (setf (get sym 'op) (get temp-op 'op))
-                  (let ((lbracket-pos (search "[" (symbol-name sym)))
-                        rbracket-pos)
-                    (when lbracket-pos
-                      (setf rbracket-pos (search "]" (symbol-name sym)
-                                                 :start2 (1+ lbracket-pos)))
-                      (multiple-value-bind (n a)
-                          (parse-integer
-                           (subseq (symbol-name sym)
-                                   (1+ lbracket-pos)
-                                   rbracket-pos)
-                           :junk-allowed t)
-                        (when n
-                          (setf (get sym '/n) n)
-                          (when (equal "-" (subseq (symbol-name sym)
-                                                   (+ 1 lbracket-pos a)
-                                                   (+ 2 lbracket-pos a)))
-                            (let ((m (parse-integer (subseq
-                                                     (symbol-name sym)
-                                                     (+ 2 lbracket-pos a))
-                                                    :junk-allowed t)))
-                              (when m (setf (get sym '/m) m))))))))
-                  (return-from get-op (get sym 'op)))))
-         (setf (get sym 'op) 'literal))))
+  (bt:with-recursive-lock-held (*operator-lock*)
+    (cond ((consp sym) nil)
+          ((numberp sym) 'literal)
+          ((get sym 'op) (get sym'op))
+          (t
+           (when (op-is-pred? sym)
+             (setf (get sym 'op) sym)
+             (return-from get-op sym))
+           (loop for i from 1 to (min 2 (length (symbol-name sym))) do
+                (let* ((temp-op (intern (subseq (symbol-name sym) 0 i) :ttt)))
+                  (when (and (get temp-op 'op)
+                             (valid-op-suffix (subseq (symbol-name sym) i)))
+                    (setf (get sym 'op) (get temp-op 'op))
+                    (let ((lbracket-pos (search "[" (symbol-name sym)))
+                          rbracket-pos)
+                      (when lbracket-pos
+                        (setf rbracket-pos (search "]" (symbol-name sym)
+                                                   :start2 (1+ lbracket-pos)))
+                        (multiple-value-bind (n a)
+                            (parse-integer
+                             (subseq (symbol-name sym)
+                                     (1+ lbracket-pos)
+                                     rbracket-pos)
+                             :junk-allowed t)
+                          (when n
+                            (setf (get sym '/n) n)
+                            (when (equal "-" (subseq (symbol-name sym)
+                                                     (+ 1 lbracket-pos a)
+                                                     (+ 2 lbracket-pos a)))
+                              (let ((m (parse-integer (subseq
+                                                       (symbol-name sym)
+                                                       (+ 2 lbracket-pos a))
+                                                      :junk-allowed t)))
+                                (when m (setf (get sym '/m) m))))))))
+                    (return-from get-op (get sym 'op)))))
+           (setf (get sym 'op) 'literal)))))
 
 (defparameter *invalid-suffix-chars*
   (list #\! #\* #\+ #\_ #\? #\^ #\< #\> #\{ #\} #\@ #\Space))
@@ -93,21 +97,24 @@
 (defun sticky? (op)
   "Return true if the atomic symbol op represents a sticky variable;
    memoize the result."
-  (if (get-op op)
-      (if (get op 'stickysearch)
-          (get op 'sticky)
-          (progn
-            (setf (get op 'stickysearch) t)
-            (if (search "." (symbol-name op))
-                (setf (get op 'sticky) t)
-                (setf (get op 'sticky) nil))))))
+  (bt:with-recursive-lock-held (*operator-lock*)
+    (if (get-op op)
+        (if (get op 'stickysearch)
+            (get op 'sticky)
+            (progn
+              (setf (get op 'stickysearch) t)
+              (if (search "." (symbol-name op))
+                  (setf (get op 'sticky) t)
+                  (setf (get op 'sticky) nil)))))))
 (declaim (ftype (function (tree-expr) (or null fixnum)) get-/n get-/m))
 (defun get-/n (sym)
   (if (get-op sym)
-      (get sym '/n)))
+      (bt:with-recursive-lock-held (*operator-lock*)
+        (get sym '/n))))
 (defun get-/m (sym)
   (if (get-op sym)
-      (get sym '/m)))
+      (bt:with-recursive-lock-held (*operator-lock*)
+        (get sym '/m))))
 
 (defun mk-var (op &optional bind)
   (let ((sym (gensym "SPECIALSYM")))
@@ -133,15 +140,18 @@
 (defun op-requires-args? (op)
   "Return t if the operation requires args (!,+,*,?,{},<>,^,^n,^*,^+,^@).
    Nil otherwise (_!,_+,_*,_?)."
-  (get op 'requires-args))
+  (bt:with-recursive-lock-held (*operator-lock*)
+    (get op 'requires-args)))
 
 (defun purge-op (op)
   "Purge op from the operation table."
-  (delete op *operation-table*))
+  (bt:with-recursive-lock-held (*operator-lock*)
+    (delete op *operation-table*)))
 
 (defun literal? (sym)
   "return t if sym can only match itself"
-  (get (get-op sym) 'literal))
+  (bt:with-recursive-lock-held (*operator-lock*)
+    (get (get-op sym) 'literal)))
 
 (defun variable? (sym)
   "return t if sym is an operator with a variable"
