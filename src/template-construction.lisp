@@ -109,6 +109,7 @@
 (defparameter *subst-new-next-int*
   ;;"Simple global counter for new symbol integer extensions."
   0)
+(defvar *next-int-lock* (bt:make-recursive-lock))
 (declaim (type fixnum *subst-new-next-int*))
 
 (defun subst-new! (sym expr)
@@ -122,7 +123,8 @@
                                      (symbol-name sym)
                                      "."
                                      (write-to-string
-                                      (incf *subst-new-next-int*))))))
+                                      (bt:with-recursive-lock-held (*next-int-lock*)
+                                        (incf *subst-new-next-int*)))))))
     (deep-substitute newsym sym expr)))
 
 

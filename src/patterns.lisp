@@ -2,6 +2,7 @@
 (defparameter *built-patterns* (make-hash-table :test #'equal))
 (defparameter *ttt-debug-level* 0)
 (declaim (type fixnum *ttt-debug-level*))
+(defvar *pattern-lock* (bt:make-recursive-lock))
 
 (defclass pattern ()
   ((min-width :accessor min-width :initform 0 :initarg :min-width :type fixnum)
@@ -42,8 +43,9 @@
 
 (defun build-pattern (expression)
   "Builds a pattern object according to expression."
-  (if (gethash expression *built-patterns*)
-      (return-from build-pattern (gethash expression *built-patterns*)))
+  (bt:with-recursive-lock-held (*pattern-lock*)
+    (if (gethash expression *built-patterns*)
+        (return-from build-pattern (gethash expression *built-patterns*))))
   (if (op-is-pred? (patt-expr-get-op expression))
       (get-pred-instance expression)
       (let* ((pattern-type
@@ -71,11 +73,13 @@
         ;; could do this in compile-pattern
         (setf (keys pattern) (extract-keys expression))
         ;; compile-pattern returns modified pattern
-        (prog1
-         (setf (gethash expression *built-patterns*)
-               (compile-pattern pattern))
+        (let ((compiled (compile-pattern pattern)))
+          (bt:with-recursive-lock-held (*pattern-lock*)
+            (setf (gethash expression *built-patterns*)
+                  compiled))
           (if (> *ttt-debug-level* 0)
-              (format t "minWidth= ~s, maxWidth= ~s~%" (min-width pattern) (max-width pattern)))))))
+              (format t "minWidth= ~s, maxWidth= ~s~%" (min-width pattern) (max-width pattern)))
+          compiled))))
 
 (defmethod match ((patt pattern) tree-seq bindings)
   "Generic method to match a compiled pattern against a sequence of trees"
